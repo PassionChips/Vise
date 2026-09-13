@@ -87,7 +87,7 @@ budget-app/
 - Expo docs: https://docs.expo.dev/get-started/create-a-project/
 - Cargo workspace can be used if desired to manage the Rust crate alongside the app
 
-**Status:** [ ] pending
+**Status:** Complete
 
 ---
 
