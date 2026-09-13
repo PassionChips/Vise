@@ -20,7 +20,7 @@ A cross-platform (iOS + Android) mobile budget and spending estimator app. The U
 
 ---
 
-## Architecture
+## Architecture.
 
 ```
 budget-app/
