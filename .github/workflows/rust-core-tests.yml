@@ -1,0 +1,36 @@
+name: Rust Core Tests
+
+on:
+  pull_request:
+    paths:
+      - "vise-app/rust-core/**"
+
+jobs:
+  test-income-source-repository:
+    name: income_source_repository tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: vise-app/rust-core
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            vise-app/rust-core/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('vise-app/rust-core/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run income_source_repository tests
+        run: cargo test income_source_repository
