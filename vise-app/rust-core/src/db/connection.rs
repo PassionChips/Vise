@@ -29,8 +29,6 @@ pub fn configure_connection(connection : &mut SqliteConnection)->QueryResult<()>
     )
 }
 
-
-
 pub fn establish_connection_test()->Result<SqliteConnection, Box<dyn std::error::Error + Send + Sync>> {
 
     let mut connection = SqliteConnection::establish(":memory:")?;
