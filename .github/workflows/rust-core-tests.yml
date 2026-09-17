@@ -33,4 +33,4 @@ jobs:
             ${{ runner.os }}-cargo-
 
       - name: Run income_source_repository tests
-        run: cargo test income_source_repository
+        run: cargo test --all-targets
