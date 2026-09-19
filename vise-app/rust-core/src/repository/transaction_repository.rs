@@ -1,25 +1,28 @@
-use diesel::prelude::*;
 use crate::db::schema::transactions;
+use diesel::OptionalExtension;
 use diesel::dsl::sql;
+use diesel::prelude::*;
 use diesel::result::QueryResult;
 use diesel::sql_types::BigInt;
 use diesel::sqlite::SqliteConnection;
-use diesel::OptionalExtension;
 
-use crate::models::transaction::{
-    Transaction,
-    NewTransaction,
-    UpdateTransaction
-};
+use crate::models::transaction::{NewTransaction, Transaction, UpdateTransaction};
 
-pub fn insert(connection:&mut SqliteConnection,source:&NewTransaction)->QueryResult<Transaction>{
+pub fn insert(
+    connection: &mut SqliteConnection,
+    source: &NewTransaction,
+) -> QueryResult<Transaction> {
     diesel::insert_into(transactions::table)
         .values(source)
         .returning(Transaction::as_returning())
         .get_result(connection)
 }
 
-pub fn update(connection:&mut SqliteConnection, changes:&UpdateTransaction,source_id:i32)->QueryResult<Option<Transaction>>{
+pub fn update(
+    connection: &mut SqliteConnection,
+    changes: &UpdateTransaction,
+    source_id: i32,
+) -> QueryResult<Option<Transaction>> {
     diesel::update(transactions::table.filter(transactions::id.eq(source_id)))
         .set((
             changes,
@@ -30,19 +33,23 @@ pub fn update(connection:&mut SqliteConnection, changes:&UpdateTransaction,sourc
         .optional()
 }
 
-pub fn delete(connection:&mut SqliteConnection, source_id:i32)->QueryResult<bool>{
-    let affected_rows = diesel::delete(transactions::table.filter(transactions::id.eq(source_id))).execute(connection)?;
+pub fn delete(connection: &mut SqliteConnection, source_id: i32) -> QueryResult<bool> {
+    let affected_rows = diesel::delete(transactions::table.filter(transactions::id.eq(source_id)))
+        .execute(connection)?;
     Ok(affected_rows > 0)
 }
 
-pub fn get_all(connection:&mut SqliteConnection)->QueryResult<Vec<Transaction>>{
+pub fn get_all(connection: &mut SqliteConnection) -> QueryResult<Vec<Transaction>> {
     transactions::table
         .select(Transaction::as_select())
         .order(transactions::id.asc())
         .load(connection)
 }
 
-pub fn get_by_id(connection:&mut SqliteConnection, source_id:i32)->QueryResult<Option<Transaction>>{
+pub fn get_by_id(
+    connection: &mut SqliteConnection,
+    source_id: i32,
+) -> QueryResult<Option<Transaction>> {
     transactions::table
         .filter(transactions::id.eq(source_id))
         .first(connection)

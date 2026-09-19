@@ -3,16 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::db::schema::expense_categories;
 
-#[derive(
-    Debug,
-    Clone,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-)]
+#[derive(Debug, Clone, Queryable, Selectable, Identifiable, Serialize, Deserialize, PartialEq)]
 #[diesel(table_name = expense_categories)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct ExpenseCategory {
@@ -26,13 +17,7 @@ pub struct ExpenseCategory {
     pub updated_at: i64,
 }
 
-#[derive(
-    Debug,
-    Clone,
-    Insertable,
-    Serialize,
-    Deserialize,
-)]
+#[derive(Debug, Clone, Insertable, Serialize, Deserialize)]
 #[diesel(table_name = expense_categories)]
 pub struct NewExpenseCategory {
     pub name: String,
@@ -42,14 +27,7 @@ pub struct NewExpenseCategory {
     pub is_active: bool,
 }
 
-#[derive(
-    Debug,
-    Clone,
-    AsChangeset,
-    Serialize,
-    Deserialize,
-    Default,
-)]
+#[derive(Debug, Clone, AsChangeset, Serialize, Deserialize, Default)]
 #[diesel(table_name = expense_categories)]
 pub struct UpdateExpenseCategory {
     pub name: Option<String>,

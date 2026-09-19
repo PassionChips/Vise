@@ -3,16 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::db::schema::budget_months;
 
-#[derive(
-    Debug,
-    Clone,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-)]
+#[derive(Debug, Clone, Queryable, Selectable, Identifiable, Serialize, Deserialize, PartialEq)]
 #[diesel(table_name = budget_months)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct BudgetMonth {
@@ -25,13 +16,7 @@ pub struct BudgetMonth {
     pub updated_at: i64,
 }
 
-#[derive(
-    Debug,
-    Clone,
-    Insertable,
-    Serialize,
-    Deserialize,
-)]
+#[derive(Debug, Clone, Insertable, Serialize, Deserialize)]
 #[diesel(table_name = budget_months)]
 pub struct NewBudgetMonth {
     pub month: String,
@@ -40,14 +25,7 @@ pub struct NewBudgetMonth {
     pub savings_target_cents: Option<i64>,
 }
 
-#[derive(
-    Debug,
-    Clone,
-    AsChangeset,
-    Serialize,
-    Deserialize,
-    Default,
-)]
+#[derive(Debug, Clone, AsChangeset, Serialize, Deserialize, Default)]
 #[diesel(table_name = budget_months)]
 pub struct UpdateBudgetMonth {
     pub month: Option<String>,

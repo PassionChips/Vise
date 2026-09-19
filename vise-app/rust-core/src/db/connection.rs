@@ -1,26 +1,25 @@
+use diesel::connection::SimpleConnection;
 use diesel::prelude::*;
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
-use diesel::connection::SimpleConnection;
 use std::path::Path;
 
-pub const MIGRATIONS:EmbeddedMigrations = embed_migrations!("migrations");
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
-pub fn establish_connection(database_path: &Path) -> Result<SqliteConnection ,Box<dyn std::error::Error + Send +Sync>> {
+pub fn establish_connection(
+    database_path: &Path,
+) -> Result<SqliteConnection, Box<dyn std::error::Error + Send + Sync>> {
+    let database_url = database_path.to_str().ok_or("Database url not found")?;
 
-        let database_url = database_path.to_str().ok_or("Database url not found")?;
+    let mut connection = SqliteConnection::establish(database_url)?;
 
-        let mut connection = SqliteConnection::establish(database_url)?;
+    configure_connection(&mut connection)?;
 
-        configure_connection(&mut connection)?;
+    connection.run_pending_migrations(MIGRATIONS)?;
 
-        connection.run_pending_migrations(MIGRATIONS)?;
-
-        Ok(connection)
-        
+    Ok(connection)
 }
 
-pub fn configure_connection(connection : &mut SqliteConnection)->QueryResult<()>{
-
+pub fn configure_connection(connection: &mut SqliteConnection) -> QueryResult<()> {
     connection.batch_execute(
         "
         PRAGMA foreign_keys = ON;
@@ -29,13 +28,10 @@ pub fn configure_connection(connection : &mut SqliteConnection)->QueryResult<()>
     )
 }
 
-
-
-pub fn establish_connection_test()->Result<SqliteConnection, Box<dyn std::error::Error + Send + Sync>> {
-
+pub fn establish_connection_test()
+-> Result<SqliteConnection, Box<dyn std::error::Error + Send + Sync>> {
     let mut connection = SqliteConnection::establish(":memory:")?;
     configure_connection(&mut connection)?;
     connection.run_pending_migrations(MIGRATIONS)?;
     Ok(connection)
-
 }

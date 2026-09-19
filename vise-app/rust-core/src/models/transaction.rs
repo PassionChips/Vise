@@ -3,16 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::db::schema::transactions;
 
-#[derive(
-    Debug,
-    Clone,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-)]
+#[derive(Debug, Clone, Queryable, Selectable, Identifiable, Serialize, Deserialize, PartialEq)]
 #[diesel(table_name = transactions)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Transaction {
@@ -43,13 +34,7 @@ pub struct Transaction {
     pub updated_at: i64,
 }
 
-#[derive(
-    Debug,
-    Clone,
-    Insertable,
-    Serialize,
-    Deserialize,
-)]
+#[derive(Debug, Clone, Insertable, Serialize, Deserialize)]
 #[diesel(table_name = transactions)]
 pub struct NewTransaction {
     pub source_type: String,
@@ -74,14 +59,7 @@ pub struct NewTransaction {
     pub exclude_from_totals: bool,
 }
 
-#[derive(
-    Debug,
-    Clone,
-    AsChangeset,
-    Serialize,
-    Deserialize,
-    Default,
-)]
+#[derive(Debug, Clone, AsChangeset, Serialize, Deserialize, Default)]
 #[diesel(table_name = transactions)]
 pub struct UpdateTransaction {
     pub source_type: Option<String>,
