@@ -1,25 +1,28 @@
-use diesel::prelude::*;
 use crate::db::schema::expense_categories;
+use diesel::OptionalExtension;
 use diesel::dsl::sql;
+use diesel::prelude::*;
 use diesel::result::QueryResult;
 use diesel::sql_types::BigInt;
 use diesel::sqlite::SqliteConnection;
-use diesel::OptionalExtension;
 
-use crate::models::expense_category::{
-    ExpenseCategory,
-    NewExpenseCategory,
-    UpdateExpenseCategory
-};
+use crate::models::expense_category::{ExpenseCategory, NewExpenseCategory, UpdateExpenseCategory};
 
-pub fn insert(connection:&mut SqliteConnection,source:&NewExpenseCategory)->QueryResult<ExpenseCategory>{
+pub fn insert(
+    connection: &mut SqliteConnection,
+    source: &NewExpenseCategory,
+) -> QueryResult<ExpenseCategory> {
     diesel::insert_into(expense_categories::table)
         .values(source)
         .returning(ExpenseCategory::as_returning())
         .get_result(connection)
 }
 
-pub fn update(connection:&mut SqliteConnection,changes:&UpdateExpenseCategory,source_id:i32)->QueryResult<Option<ExpenseCategory>>{
+pub fn update(
+    connection: &mut SqliteConnection,
+    changes: &UpdateExpenseCategory,
+    source_id: i32,
+) -> QueryResult<Option<ExpenseCategory>> {
     diesel::update(expense_categories::table.filter(expense_categories::id.eq(source_id)))
         .set((
             changes,
@@ -30,26 +33,29 @@ pub fn update(connection:&mut SqliteConnection,changes:&UpdateExpenseCategory,so
         .optional()
 }
 
-pub fn delete(connection:&mut SqliteConnection, source_id:i32)->QueryResult<bool>{
-    let affected_rows = diesel::delete(expense_categories::table.filter(expense_categories::id.eq(source_id)))
-        .execute(connection)?;
+pub fn delete(connection: &mut SqliteConnection, source_id: i32) -> QueryResult<bool> {
+    let affected_rows =
+        diesel::delete(expense_categories::table.filter(expense_categories::id.eq(source_id)))
+            .execute(connection)?;
 
     Ok(affected_rows > 0)
 }
 
-pub fn get_all(connection:&mut SqliteConnection)->QueryResult<Vec<ExpenseCategory>>{
+pub fn get_all(connection: &mut SqliteConnection) -> QueryResult<Vec<ExpenseCategory>> {
     expense_categories::table
         .select(ExpenseCategory::as_select())
         .order(expense_categories::id.asc())
         .load(connection)
 }
 
-pub fn get_by_id(connection:&mut SqliteConnection, source_id:i32)->QueryResult<Option<ExpenseCategory>>{
+pub fn get_by_id(
+    connection: &mut SqliteConnection,
+    source_id: i32,
+) -> QueryResult<Option<ExpenseCategory>> {
     expense_categories::table
         .filter(expense_categories::id.eq(source_id))
         .first(connection)
         .optional()
-        
 }
 
 #[cfg(test)]
@@ -90,8 +96,16 @@ mod tests {
     fn get_all_returns_all_expense_categories() {
         let mut connection = establish_connection_test().unwrap();
 
-        insert(&mut connection, &sample_expense_category("Groceries".to_string())).unwrap();
-        insert(&mut connection, &sample_expense_category("Transport".to_string())).unwrap();
+        insert(
+            &mut connection,
+            &sample_expense_category("Groceries".to_string()),
+        )
+        .unwrap();
+        insert(
+            &mut connection,
+            &sample_expense_category("Transport".to_string()),
+        )
+        .unwrap();
 
         let categories = get_all(&mut connection).unwrap();
 
@@ -104,7 +118,11 @@ mod tests {
     fn get_by_id_returns_matching_expense_category() {
         let mut connection = establish_connection_test().unwrap();
 
-        let created = insert(&mut connection, &sample_expense_category("Groceries".to_string())).unwrap();
+        let created = insert(
+            &mut connection,
+            &sample_expense_category("Groceries".to_string()),
+        )
+        .unwrap();
 
         let found = get_by_id(&mut connection, created.id.unwrap())
             .unwrap()
@@ -127,7 +145,11 @@ mod tests {
     fn update_changes_expense_category_fields() {
         let mut connection = establish_connection_test().unwrap();
 
-        let created = insert(&mut connection, &sample_expense_category("Groceries".to_string())).unwrap();
+        let created = insert(
+            &mut connection,
+            &sample_expense_category("Groceries".to_string()),
+        )
+        .unwrap();
 
         let changes = UpdateExpenseCategory {
             name: Some("Food & Drink".to_string()),
@@ -153,7 +175,11 @@ mod tests {
     fn update_can_clear_optional_fields_to_null() {
         let mut connection = establish_connection_test().unwrap();
 
-        let created = insert(&mut connection, &sample_expense_category("Groceries".to_string())).unwrap();
+        let created = insert(
+            &mut connection,
+            &sample_expense_category("Groceries".to_string()),
+        )
+        .unwrap();
 
         let changes = UpdateExpenseCategory {
             icon: Some(None),
@@ -187,7 +213,11 @@ mod tests {
     fn delete_removes_expense_category() {
         let mut connection = establish_connection_test().unwrap();
 
-        let created = insert(&mut connection, &sample_expense_category("Groceries".to_string())).unwrap();
+        let created = insert(
+            &mut connection,
+            &sample_expense_category("Groceries".to_string()),
+        )
+        .unwrap();
 
         let deleted = delete(&mut connection, created.id.unwrap()).unwrap();
         assert!(deleted);
