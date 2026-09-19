@@ -2,14 +2,14 @@
 
 ## Overview
 
-A cross-platform (iOS + Android) mobile budget and spending estimator app. The UI is built with React Native + Expo, the core calculation engine and database layer are written in Rust, and Python handles analytics, reporting, and ML-based spending predictions. Rust and Python are bridged via PyO3, and Rust is exposed to React Native via the Expo Modules API.
+A cross-platform (iOS + Android) mobile budget and spending estimator app. The UI is built with React Native + Expo, the core calculation engine and database layer are written in Rust, and analytics and ML predictions are implemented in Rust and rendered natively in React Native.
 
 **Goals:**
 - Add income sources and expense categories with monthly limits
 - Log transactions against categories
 - View a monthly summary of spending vs budget
-- See analytics reports and charts (pandas)
-- Get ML-powered predictions for next month's spending (scikit-learn)
+- See analytics reports and charts (React Native charting library)
+- Get spending predictions for next month (Rust linear regression)
 
 **Non-goals (MVP):**
 - Cloud sync or backend
@@ -20,7 +20,7 @@ A cross-platform (iOS + Android) mobile budget and spending estimator app. The U
 
 ---
 
-## Architecture.
+## Architecture
 
 ```
 budget-app/
@@ -31,21 +31,14 @@ budget-app/
 │   ├── hooks/                    # Custom hooks (useBudget, useTransactions)
 │   └── services/                 # JS bridge calls to Rust native module
 │
-├── rust-core/                    # Rust crate — core engine + native module
-│   ├── src/
-│   │   ├── lib.rs                # Expo Modules entry point (JNI / Swift FFI)
-│   │   ├── db/                   # SQLite connection, migrations, schema
-│   │   ├── models/               # Rust structs: Income, Category, Transaction
-│   │   ├── repository/           # CRUD functions for each model
-│   │   ├── calculations/         # Budget math, totals, limit checks
-│   │   └── python_bridge/        # PyO3 bridge — calls Python analytics layer
-│   └── Cargo.toml
-│
-└── python-analytics/             # Python package — analytics + ML
-    ├── analytics.py              # pandas-based monthly summaries
-    ├── charts.py                 # matplotlib chart generation (returns base64 PNG)
-    ├── predictions.py            # scikit-learn spending forecasts
-    └── requirements.txt          # pandas, matplotlib, scikit-learn, numpy
+└── rust-core/                    # Rust crate — core engine + native module
+    ├── src/
+    │   ├── lib.rs                # Expo Modules entry point (JNI / Swift FFI)
+    │   ├── db/                   # SQLite connection, migrations, schema
+    │   ├── models/               # Rust structs: Income, Category, Transaction
+    │   ├── repository/           # CRUD functions for each model
+    │   └── calculations/         # Budget math, totals, limit checks, predictions
+    └── Cargo.toml
 ```
 
 ---
@@ -54,10 +47,10 @@ budget-app/
 
 | Table | Columns |
 |---|---|
-| `income_sources` | id, name, amount, frequency (monthly/weekly/yearly), created_at |
-| `expense_categories` | id, name, monthly_limit, color, created_at |
-| `transactions` | id, category_id, amount, date, note, created_at |
-| `budget_months` | id, month (YYYY-MM), total_income, total_limit, total_spent |
+| `income_sources` | id, name, is_active, created_at, updated_at |
+| `expense_categories` | id, name, icon, color, is_default, is_active, created_at, updated_at |
+| `transactions` | id, source_type, transaction_type, amount_cents, currency, description, occurred_at, income_source_id, expense_category_id, external_id, revolut_account_id, merchant_name, raw_description, revolut_category, status, completed_at, exclude_from_totals, created_at, updated_at |
+| `budget_months` | id, month (YYYY-MM), currency, spending_limit_cents, savings_target_cents, created_at, updated_at |
 
 ---
 
@@ -79,7 +72,7 @@ budget-app/
 1. Create `src/calculations/totals.rs` — sum transactions by category for a given month
 2. Create `src/calculations/budget_check.rs` — compare category totals against monthly limits, return over/under status per category
 3. Create `src/calculations/summary.rs` — aggregate total income, total limit, total spent, net remaining for a month
-4. Expose a `calculate_monthly_summary(month: &str) -> BudgetMonth` function that reads from DB and returns a populated summary struct
+4. Expose a `calculate_monthly_summary(month: &str) -> MonthlySummary` function that reads from DB and returns a populated summary struct
 5. Write unit tests for all calculation functions with sample data
 6. Run `cargo test` and confirm all tests pass
 
@@ -91,71 +84,40 @@ budget-app/
 
 ---
 
-### Sub-Task 4 — Python Analytics Layer
+### Sub-Task 4 — Rust: Analytics & Spending Predictions
 
-**Intent:** Build the Python analytics package that receives transaction data (as JSON) and returns monthly summaries, chart images, and ML spending predictions back to the Rust caller.
+**Intent:** Implement analytics aggregations and next-month spending prediction entirely in Rust, replacing the previously planned Python analytics layer.
 
 **Expected Outcomes:**
-- `analytics.py` accepts JSON transaction data and returns monthly breakdown as JSON (using pandas)
-- `charts.py` generates a spending-by-category pie chart and a monthly trend bar chart, returns base64-encoded PNG strings
-- `predictions.py` trains a simple linear regression (scikit-learn) on historical monthly totals and returns a predicted spend for next month
-- All three modules are callable as Python functions (no CLI, no server — pure functions for PyO3)
+- `src/calculations/analytics.rs` computes monthly breakdowns by category (equivalent to a pandas groupby) and returns them as serialisable Rust structs
+- `src/calculations/predictions.rs` implements a simple least-squares linear regression over historical monthly totals and returns a predicted spend for next month
+- Cold-start handled gracefully: return `0` or the average when fewer than 3 months of data are available
+- All functions are pure (accept data as arguments, not DB connections) and have unit tests
+- Results are serialised to JSON via `serde_json` for consumption by the React Native layer
 
 **Todo List:**
-1. Implement `analytics.py` — `monthly_breakdown(transactions_json: str) -> str` using pandas DataFrame, returns JSON summary
-2. Implement `charts.py` — `spending_pie_chart(breakdown_json: str) -> str` and `monthly_trend_chart(monthly_totals_json: str) -> str`, both return base64 PNG strings using matplotlib with a non-interactive backend (`matplotlib.use('Agg')`)
-3. Implement `predictions.py` — `predict_next_month(monthly_totals_json: str) -> float` using scikit-learn `LinearRegression` on at least 3 months of historical data
-4. Write Python unit tests (`pytest`) for all three modules with sample JSON inputs
-5. Run `pytest` and confirm all tests pass
-6. Pin all dependency versions in `requirements.txt` after verifying they are the latest stable releases with no known critical CVEs
+1. Implement `src/calculations/analytics.rs` — `monthly_breakdown(transactions: &[Transaction], month: &str) -> Vec<CategoryBreakdown>` returning category name, amount spent, and percentage of total
+2. Implement `src/calculations/predictions.rs` — `predict_next_month(monthly_totals: &[(i64, i64)]) -> i64` using least-squares linear regression; handle fewer than 3 data points gracefully
+3. Expose both functions through `lib.rs` so the Expo native module (Sub-Task 6) can call them
+4. Write unit tests for both functions with sample data, including the cold-start edge case
+5. Run `cargo test` and confirm all tests pass
 
 **Relevant Context:**
-- Use `matplotlib.use('Agg')` — critical for headless rendering (no display required on mobile)
-- All functions must accept and return strings (JSON or base64) — this is the contract PyO3 will use
-- `scikit-learn` requires at least a few data points for meaningful predictions — handle the cold-start case (fewer than 3 months) gracefully by returning 0.0 or the average
+- Least-squares linear regression: `slope = (n·Σxy − Σx·Σy) / (n·Σx² − (Σx)²)`, `intercept = (Σy − slope·Σx) / n`
+- No external crates needed — this is ~20 lines of arithmetic
+- Return cents (i64) throughout; the RN layer converts to display currency
 
 **Status:** [ ] pending
 
 ---
 
-### Sub-Task 5 — PyO3 Bridge (Rust calls Python)
+### Sub-Task 5 — Expo Native Module (Rust exposed to React Native)
 
-**Intent:** Wire Rust to the Python analytics layer via PyO3 so the Rust core can call `analytics.py`, `charts.py`, and `predictions.py` as if they were native Rust functions.
-
-**Expected Outcomes:**
-- Rust can call `monthly_breakdown`, `spending_pie_chart`, `monthly_trend_chart`, and `predict_next_month` from Python
-- Results are deserialized from Python strings back into Rust types
-- PyO3 bridge compiles for iOS (`aarch64-apple-ios`) and Android (`aarch64-linux-android`) targets
-- Error handling: Python exceptions are caught and converted to Rust `Result` errors (never panic)
-
-**Todo List:**
-1. Add `pyo3` with `features = ["auto-initialize"]` to `Cargo.toml`
-2. Create `src/python_bridge/mod.rs` — initialize the Python interpreter and import the analytics module
-3. Implement `call_monthly_breakdown(transactions_json: &str) -> Result<String, BridgeError>`
-4. Implement `call_spending_chart(breakdown_json: &str) -> Result<String, BridgeError>`
-5. Implement `call_monthly_trend_chart(monthly_totals_json: &str) -> Result<String, BridgeError>`
-6. Implement `call_predict_next_month(monthly_totals_json: &str) -> Result<f64, BridgeError>`
-7. Bundle the Python scripts into the app binary or as embedded assets — document the embedding strategy for iOS vs Android
-8. Write integration tests that call each bridge function end-to-end
-9. Run `cargo test` and confirm all bridge tests pass
-
-**Relevant Context:**
-- PyO3 docs: https://pyo3.rs — pay close attention to the GIL (`Python::with_gil`)
-- Bundling CPython on mobile requires `python3-sys` and linking against a static `libpython` — this is the most complex build step in the project
-- iOS requires a static library (`staticlib`); Android requires a shared library (`cdylib`)
-- The Python `.py` files must be accessible at runtime — embed them using `include_str!` or bundle as app assets
-
-**Status:** [ ] pending
-
----
-
-### Sub-Task 6 — Expo Native Module (Rust exposed to React Native)
-
-**Intent:** Expose the Rust core engine to React Native via the Expo Modules API so JavaScript can call Rust functions (CRUD, calculations, analytics) without any network layer.
+**Intent:** Expose the Rust core engine to React Native via the Expo Modules API so JavaScript can call Rust functions (CRUD, calculations, analytics, predictions) without any network layer.
 
 **Expected Outcomes:**
 - An Expo native module wraps all Rust functions
-- JS can call: `addTransaction`, `getTransactions`, `getCategories`, `addCategory`, `getMonthlySummary`, `getSpendingChart`, `predictNextMonth`
+- JS can call: `addTransaction`, `getTransactions`, `getCategories`, `addCategory`, `getMonthlySummary`, `getCategoryBreakdown`, `predictNextMonth`
 - All calls are async (return Promises) to avoid blocking the JS thread
 - Module works on both iOS and Android
 
@@ -164,7 +126,7 @@ budget-app/
 2. On Android: write JNI bindings in `RustBridgeModule.kt` that load the compiled Rust `.so` and call exported functions
 3. On iOS: write Swift bindings in `RustBridgeModule.swift` that call the compiled Rust static library via a C header
 4. Define the JavaScript API surface in `src/RustBridgeModule.ts` with full TypeScript types matching the Rust data models
-5. Wire each JS function through to the corresponding Rust repository / calculation / bridge function
+5. Wire each JS function through to the corresponding Rust repository / calculation function
 6. Test the module on an iOS simulator and an Android emulator
 7. Document the build commands needed to compile Rust for each target before running the Expo app
 
@@ -178,7 +140,7 @@ budget-app/
 
 ---
 
-### Sub-Task 7 — React Native UI: Screens and Navigation
+### Sub-Task 6 — React Native UI: Screens and Navigation
 
 **Intent:** Build the four core screens of the app with React Navigation, wired to the Rust bridge via the JS service layer.
 
@@ -186,7 +148,7 @@ budget-app/
 - Dashboard screen: shows current month's total income, total spent, remaining budget, and a per-category breakdown
 - Categories screen: list of expense categories with monthly limits, ability to add/edit/delete
 - Transactions screen: list of transactions for the current month, ability to add a new transaction (amount, category, note, date)
-- Reports screen: shows spending pie chart and monthly trend bar chart (images from Python via Rust bridge), plus ML prediction for next month
+- Reports screen: shows spending breakdown pie chart and monthly trend bar chart rendered natively via a React Native charting library, plus the Rust-computed prediction for next month
 
 **Todo List:**
 1. Install `@react-navigation/native`, `@react-navigation/bottom-tabs`, and required dependencies
@@ -194,12 +156,12 @@ budget-app/
 3. Build `screens/DashboardScreen.tsx` — calls `getMonthlySummary` on mount, displays totals and a category progress list
 4. Build `screens/CategoriesScreen.tsx` — calls `getCategories`, renders list with add/edit/delete actions
 5. Build `screens/TransactionsScreen.tsx` — calls `getTransactions`, renders list with an add-transaction form (modal or bottom sheet)
-6. Build `screens/ReportsScreen.tsx` — calls `getSpendingChart`, `getMonthlyTrendChart`, `predictNextMonth`; displays charts as `<Image>` components from base64 and shows the ML prediction value
+6. Build `screens/ReportsScreen.tsx` — calls `getCategoryBreakdown` and `predictNextMonth`; renders a pie chart and bar chart using a React Native charting library (e.g. `victory-native` or `react-native-gifted-charts`), and shows the ML prediction value
 7. Create `services/budgetService.ts` — thin wrapper around all native module calls with TypeScript return types
 8. Add basic loading and error states to all screens
 
 **Relevant Context:**
-- Charts returned from Python are base64 PNG strings — use `<Image source={{ uri: 'data:image/png;base64,...' }}>`
+- Charts are rendered natively by the charting library — no base64 image round-trip needed
 - React Navigation docs: https://reactnavigation.org/
 - Keep screens thin — all data logic lives in `services/budgetService.ts` and the Rust layer
 
@@ -207,7 +169,7 @@ budget-app/
 
 ---
 
-### Sub-Task 8 — UI Component Library and Styling
+### Sub-Task 7 — UI Component Library and Styling
 
 **Intent:** Apply a consistent design system to the app using React Native Paper so the app looks and feels polished on both iOS and Android with minimal custom CSS.
 
@@ -232,47 +194,44 @@ budget-app/
 
 ---
 
-### Sub-Task 9 — Build Pipeline and Cross-Compilation
+### Sub-Task 8 — Build Pipeline and Cross-Compilation
 
 **Intent:** Set up the scripts and CI configuration needed to compile Rust for iOS and Android targets and bundle everything into a working Expo build.
 
 **Expected Outcomes:**
 - A single `build.sh` script compiles Rust for all four targets and places the binaries where the Expo native module expects them
 - `eas build` (Expo Application Services) can produce a working `.ipa` and `.apk`
-- The Python interpreter and analytics scripts are bundled correctly inside both builds
 
 **Todo List:**
 1. Install Rust cross-compilation targets: `rustup target add aarch64-apple-ios x86_64-apple-ios aarch64-linux-android x86_64-linux-android`
 2. Install Android NDK and configure `~/.cargo/config.toml` with the correct linkers for each Android target
 3. Write `build.sh` — compiles Rust for all targets, copies output to `ios/` and `android/jniLibs/` directories
 4. Configure `eas.json` with `prebuildCommand` to run `build.sh` before each EAS build
-5. Document the Python bundling strategy: static `libpython` compiled for each target, embedded in the Rust binary
-6. Do a full `eas build --platform ios` and `eas build --platform android` and verify both succeed
-7. Document any manual steps required (Apple Developer account, Android keystore)
+5. Do a full `eas build --platform ios` and `eas build --platform android` and verify both succeed
+6. Document any manual steps required (Apple Developer account, Android keystore)
 
 **Relevant Context:**
 - EAS Build docs: https://docs.expo.dev/build/introduction/
 - Android NDK linker config for Cargo: https://doc.rust-lang.org/cargo/reference/config.html
-- Bundling CPython statically for mobile is the hardest step — `python3-sys` with `PYO3_CROSS` env vars
 
 **Status:** [ ] pending
 
 ---
 
-### Sub-Task 10 — Testing and Polish
+### Sub-Task 9 — Testing and Polish
 
 **Intent:** Ensure the full app works end-to-end on real devices, fix edge cases, and prepare for personal use or distribution.
 
 **Expected Outcomes:**
 - All four screens function correctly on a physical iOS device and Android device
-- Edge cases handled: no transactions yet (empty state), category over budget (red indicator), fewer than 3 months of data (ML graceful fallback)
+- Edge cases handled: no transactions yet (empty state), category over budget (red indicator), fewer than 3 months of data (prediction graceful fallback)
 - No crashes on app cold start or when navigating between screens
 
 **Todo List:**
 1. Test the full user flow on a physical iOS device: add income → add categories → add transactions → view dashboard → view reports
 2. Test the same flow on a physical Android device
 3. Add empty state UI to all list screens (friendly message when no data exists yet)
-4. Verify the ML prediction falls back gracefully when fewer than 3 months of data are available
+4. Verify the spending prediction falls back gracefully when fewer than 3 months of data are available
 5. Check app performance: dashboard should load in under 500ms on a mid-range Android device
 6. Fix any layout issues found on different screen sizes
 7. Final `eas build` for both platforms and install on device
@@ -292,19 +251,17 @@ budget-app/
 | React Native | Latest stable via Expo SDK | https://reactnative.dev |
 | Expo SDK | Latest stable | https://expo.dev |
 | Rust | Latest stable (rustup) | https://rustup.rs |
-| rusqlite | Latest stable, `bundled` feature | https://crates.io/crates/rusqlite |
-| PyO3 | Latest stable | https://pyo3.rs |
+| diesel | Latest stable | https://crates.io/crates/diesel |
+| libsqlite3-sys | Latest stable, `bundled` feature | https://crates.io/crates/libsqlite3-sys |
 | serde / serde_json | Latest stable | https://crates.io/crates/serde |
-| pandas | Latest stable | https://pandas.pydata.org |
-| matplotlib | Latest stable | https://matplotlib.org |
-| scikit-learn | Latest stable | https://scikit-learn.org |
+| victory-native | Latest stable | https://commerce.nearform.com/open-source/victory-native |
 | React Navigation | Latest stable v7 | https://reactnavigation.org |
 | React Native Paper | Latest stable | https://callstack.github.io/react-native-paper |
 
 
 ## Before Opening a Pull Request — Run Linting Locally
 
-All three linting workflows run automatically on every PR. Run the checks below **before pushing** so the CI passes first time.
+All linting workflows run automatically on every PR. Run the checks below **before pushing** so the CI passes first time.
 
 ---
 
@@ -325,26 +282,6 @@ cargo fmt --check
 
 ---
 
-### Python — Ruff
-
-```bash
-cd vise-app/python-analytics
-
-# Install ruff once (if not already installed)
-pip install ruff
-
-# Lint
-ruff check .
-
-# Format check (auto-fix, then verify)
-ruff format .
-ruff format --check .
-```
-
-> `ruff format .` rewrites files in-place. Run it, commit the changes, then confirm `ruff format --check .` exits cleanly.
-
----
-
 ### TypeScript — Type-Check
 
 ```bash
@@ -361,14 +298,11 @@ npx tsc --noEmit
 
 ### Quick all-in-one script
 
-Run this from the repo root to check all three layers in one go:
+Run this from the repo root to check all layers in one go:
 
 ```bash
 # Rust
 (cd vise-app/rust-core && cargo clippy --all-targets -- -D warnings && cargo fmt --check)
-
-# Python
-(cd vise-app/python-analytics && ruff check . && ruff format --check .)
 
 # TypeScript
 (cd vise-app && npx tsc --noEmit)
