@@ -65,60 +65,6 @@ budget-app/
 
 ---
 
-### Sub-Task 1 — Project Scaffolding
-
-**Intent:** Set up the monorepo structure with all three layers (Expo, Rust crate, Python package) so every subsequent sub-task has a valid home.
-
-**Expected Outcomes:**
-- Expo app boots on iOS simulator and Android emulator
-- Rust crate compiles for host target (`cargo build`)
-- Python package installs cleanly (`pip install -r requirements.txt`)
-- Folder structure matches the architecture above
-
-**Todo List:**
-1. Run `npx create-expo-app budget-app --template blank-typescript` to scaffold the Expo project
-2. Inside the repo root, run `cargo new rust-core --lib` to create the Rust crate
-3. Create `python-analytics/` directory with placeholder `analytics.py`, `charts.py`, `predictions.py`, and `requirements.txt`
-4. Add `pandas`, `matplotlib`, `scikit-learn`, `numpy` to `requirements.txt` (latest stable versions)
-5. Set up `.gitignore` covering `node_modules/`, `target/`, `__pycache__/`, `.env`, `*.pyc`, and SQLite `.db` files
-6. Verify all three layers initialize without errors
-
-**Relevant Context:**
-- Expo docs: https://docs.expo.dev/get-started/create-a-project/
-- Cargo workspace can be used if desired to manage the Rust crate alongside the app
-
-**Status:** Complete
-
----
-
-### Sub-Task 2 — Rust: SQLite Schema and Repository Layer
-
-**Intent:** Define the database schema, run migrations on first launch, and implement all CRUD operations in Rust so the rest of the app has a stable data access layer.
-
-**Expected Outcomes:**
-- SQLite DB file is created on first app launch at the platform-appropriate path
-- All four tables are created via migration on first run
-- CRUD functions exist for: income sources, expense categories, transactions, budget month summaries
-- Unit tests pass for all repository functions using an in-memory SQLite DB
-
-**Todo List:**
-1. Add `rusqlite` with the `bundled` feature to `Cargo.toml` (bundles SQLite — no system dependency needed on iOS/Android)
-2. Create `src/db/connection.rs` — opens or creates the SQLite file, runs migrations
-3. Create `src/db/migrations.rs` — SQL `CREATE TABLE IF NOT EXISTS` statements for all four tables
-4. Create `src/models/` — define `IncomeSource`, `ExpenseCategory`, `Transaction`, `BudgetMonth` as Rust structs with `serde` derive macros
-5. Create `src/repository/` — one file per model with `insert`, `get_all`, `get_by_id`, `update`, `delete` functions
-6. Write unit tests for each repository function using `rusqlite`'s in-memory DB (`:memory:`)
-7. Run `cargo test` and confirm all tests pass
-
-**Relevant Context:**
-- `rusqlite` crate: https://crates.io/crates/rusqlite — use `features = ["bundled"]`
-- `serde` + `serde_json` needed for JSON serialization when passing data back to React Native
-- DB file path on iOS: use app documents directory; on Android: use app-specific internal storage
-
-**Status:** [ ] pending
-
----
-
 ### Sub-Task 3 — Rust: Budget Calculation Engine
 
 **Intent:** Implement all pure budget math in Rust — category totals, remaining budget, over-limit detection, and monthly summary aggregation. This is the performance-critical core.
@@ -354,6 +300,81 @@ budget-app/
 | scikit-learn | Latest stable | https://scikit-learn.org |
 | React Navigation | Latest stable v7 | https://reactnavigation.org |
 | React Native Paper | Latest stable | https://callstack.github.io/react-native-paper |
+
+
+## Before Opening a Pull Request — Run Linting Locally
+
+All three linting workflows run automatically on every PR. Run the checks below **before pushing** so the CI passes first time.
+
+---
+
+### Rust — Clippy & Format
+
+```bash
+cd vise-app/rust-core
+
+# Lint (must produce zero warnings)
+cargo clippy --all-targets -- -D warnings
+
+# Format check (auto-fix, then verify)
+cargo fmt
+cargo fmt --check
+```
+
+> `cargo fmt` rewrites files in-place. Run it, commit the changes, then confirm `cargo fmt --check` exits cleanly.
+
+---
+
+### Python — Ruff
+
+```bash
+cd vise-app/python-analytics
+
+# Install ruff once (if not already installed)
+pip install ruff
+
+# Lint
+ruff check .
+
+# Format check (auto-fix, then verify)
+ruff format .
+ruff format --check .
+```
+
+> `ruff format .` rewrites files in-place. Run it, commit the changes, then confirm `ruff format --check .` exits cleanly.
+
+---
+
+### TypeScript — Type-Check
+
+```bash
+cd vise-app
+
+# Install deps (if not already done)
+npm ci
+
+# Type-check (no output = all good)
+npx tsc --noEmit
+```
+
+---
+
+### Quick all-in-one script
+
+Run this from the repo root to check all three layers in one go:
+
+```bash
+# Rust
+(cd vise-app/rust-core && cargo clippy --all-targets -- -D warnings && cargo fmt --check)
+
+# Python
+(cd vise-app/python-analytics && ruff check . && ruff format --check .)
+
+# TypeScript
+(cd vise-app && npx tsc --noEmit)
+```
+
+All commands must exit with code `0` before the PR is ready to open.
 
 ---
 

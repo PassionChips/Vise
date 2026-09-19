@@ -1,0 +1,62 @@
+name: Rust Lint
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "vise-app/rust-core/**"
+  pull_request:
+    paths:
+      - "vise-app/rust-core/**"
+
+jobs:
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: vise-app/rust-core
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            vise-app/rust-core/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('vise-app/rust-core/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+  fmt:
+    name: Format Check
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: vise-app/rust-core
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --check
