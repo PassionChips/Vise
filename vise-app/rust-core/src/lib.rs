@@ -8,6 +8,7 @@
 //! - `models`       Rust structs mirroring the database rows
 //! - `db`           connection setup, migrations and the generated schema
 //! - `parser`       CSV import
+//! - `ffi`          native entry points used by the Expo module (Android JNI, C ABI)
 //!
 //! Shared helpers: `error` (AppError), `money` (amount parsing),
 //! `month` (YYYY-MM handling).
@@ -16,6 +17,7 @@ pub mod api;
 pub mod calculations;
 pub mod db;
 pub mod error;
+pub mod ffi;
 pub mod models;
 pub mod money;
 pub mod month;

@@ -39,6 +39,21 @@ pub fn get_for_budget_month(
         .load(connection)
 }
 
+/// Removes the limit for one category in one month. Returns false if there was none.
+pub fn delete_for_category(
+    connection: &mut SqliteConnection,
+    budget_month_id: i32,
+    expense_category_id: i32,
+) -> QueryResult<bool> {
+    let affected_rows = diesel::delete(
+        category_budgets::table
+            .filter(category_budgets::budget_month_id.eq(budget_month_id))
+            .filter(category_budgets::expense_category_id.eq(expense_category_id)),
+    )
+    .execute(connection)?;
+    Ok(affected_rows > 0)
+}
+
 pub fn delete(connection: &mut SqliteConnection, source_id: i32) -> QueryResult<bool> {
     let affected_rows =
         diesel::delete(category_budgets::table.filter(category_budgets::id.eq(source_id)))

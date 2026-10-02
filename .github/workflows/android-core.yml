@@ -1,0 +1,64 @@
+name: Android Core Build
+
+# The app talks to Rust through a JNI library. This keeps it compiling for Android and keeps the
+# exported symbols in step with modules/vise-core (the Kotlin class that loads it).
+on:
+  pull_request:
+    paths:
+      - "vise-app/rust-core/**"
+      - "vise-app/modules/**"
+      - "vise-app/scripts/**"
+
+jobs:
+  android-library:
+    name: Build librust_core.so
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: vise-app/rust-core
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,x86_64-linux-android
+
+      - name: Install cargo-ndk
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-ndk
+
+      - name: Cache Cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            vise-app/rust-core/target
+          key: ${{ runner.os }}-android-cargo-${{ hashFiles('vise-app/rust-core/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-android-cargo-
+
+      - name: Build for Android
+        # The runner image preinstalls the NDK; its path is in a shell variable, which the
+        # workflow `env:` context cannot read, so export it here.
+        run: |
+          export ANDROID_NDK_HOME="${ANDROID_NDK_LATEST_HOME:-$ANDROID_NDK_ROOT}"
+          echo "Using NDK at $ANDROID_NDK_HOME"
+          test -d "$ANDROID_NDK_HOME"
+          cargo ndk -t arm64-v8a -t x86_64 -o "$RUNNER_TEMP/jni" build --release --locked
+
+      - name: Check the JNI entry points exist
+        run: |
+          NDK="${ANDROID_NDK_LATEST_HOME:-$ANDROID_NDK_ROOT}"
+          LLVM_NM="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
+          for abi in arm64-v8a x86_64; do
+            symbols=$("$LLVM_NM" -D "$RUNNER_TEMP/jni/$abi/librust_core.so")
+            for name in Java_expo_modules_visecore_ViseCoreModule_nativeInit Java_expo_modules_visecore_ViseCoreModule_nativeCall; do
+              echo "$symbols" | grep -q "$name" || { echo "::error::$name missing from $abi build"; exit 1; }
+            done
+          done

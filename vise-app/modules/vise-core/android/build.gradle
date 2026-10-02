@@ -1,0 +1,19 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.visecore'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.visecore"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+  sourceSets {
+    // librust_core.so per ABI, produced by scripts/build-android-core.sh
+    main { jniLibs.srcDirs = ['src/main/jniLibs'] }
+  }
+}

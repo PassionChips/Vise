@@ -10,11 +10,14 @@
 
 import { requireOptionalNativeModule } from 'expo';
 
+import { invalidateData } from '../data/store';
+
 import type {
   BudgetMonth,
   CategoryBreakdown,
   CategoryBudget,
   CategoryBudgetInput,
+  CategoryBudgetKey,
   ErrorBody,
   ErrorKind,
   ExpenseCategory,
@@ -25,16 +28,21 @@ import type {
   NewCategoryInput,
   NewIncomeSourceInput,
   NewTransactionInput,
+  OnboardingInput,
+  Settings,
+  UpdateSettingsInput,
+  UpdateTransactionInput,
   Prediction,
   Transaction,
 } from './types';
 
-/** Shape of the native module. It is not built yet; see README "Rust bridge". */
+/** Shape of the native module (modules/vise-core). */
 interface ViseCoreNativeModule {
   call(method: string, payloadJson: string): Promise<string>;
 }
 
-const nativeModule = requireOptionalNativeModule<ViseCoreNativeModule>('ViseCore');
+/** Looked up per call, so the missing-module case can be tested. */
+const nativeModule = () => requireOptionalNativeModule<ViseCoreNativeModule>('ViseCore');
 
 export class ViseError extends Error {
   readonly kind: ErrorKind;
@@ -51,25 +59,36 @@ export class ViseError extends Error {
 type Reply<T> = { ok: true; data: T } | { ok: false; error: ErrorBody };
 
 async function call<T>(method: string, payload: object = {}): Promise<T> {
-  if (!nativeModule) {
+  const native = nativeModule();
+  if (!native) {
     throw new ViseError({
       kind: 'bridge_unavailable',
       message: 'The VISE core is not available in this build.',
     });
   }
-  const reply = JSON.parse(await nativeModule.call(method, JSON.stringify(payload))) as Reply<T>;
+  const reply = JSON.parse(await native.call(method, JSON.stringify(payload))) as Reply<T>;
   if (!reply.ok) {
     throw new ViseError(reply.error);
   }
   return reply.data;
 }
 
+/** A write: after it succeeds every screen showing stored data is told to reload. */
+async function mutate<T>(method: string, payload: object): Promise<T> {
+  const data = await call<T>(method, payload);
+  invalidateData();
+  return data;
+}
+
 // ----- Transactions -----
 
 export const addTransaction = (input: NewTransactionInput) =>
-  call<Transaction>('addTransaction', input);
+  mutate<Transaction>('addTransaction', input);
 
-export const deleteTransaction = (id: number) => call<null>('deleteTransaction', { id });
+export const updateTransaction = (input: UpdateTransactionInput) =>
+  mutate<Transaction>('updateTransaction', input);
+
+export const deleteTransaction = (id: number) => mutate<null>('deleteTransaction', { id });
 
 export const listTransactions = (month: string) =>
   call<Transaction[]>('listTransactions', { month });
@@ -79,20 +98,33 @@ export const listTransactions = (month: string) =>
 export const listCategories = () => call<ExpenseCategory[]>('listCategories');
 
 export const addCategory = (input: NewCategoryInput) =>
-  call<ExpenseCategory>('addCategory', input);
+  mutate<ExpenseCategory>('addCategory', input);
 
 export const listIncomeSources = () => call<IncomeSource[]>('listIncomeSources');
 
 export const addIncomeSource = (input: NewIncomeSourceInput) =>
-  call<IncomeSource>('addIncomeSource', input);
+  mutate<IncomeSource>('addIncomeSource', input);
 
 // ----- Budgets -----
 
 export const setMonthBudget = (input: MonthBudgetInput) =>
-  call<BudgetMonth>('setMonthBudget', input);
+  mutate<BudgetMonth>('setMonthBudget', input);
 
 export const setCategoryBudget = (input: CategoryBudgetInput) =>
-  call<CategoryBudget>('setCategoryBudget', input);
+  mutate<CategoryBudget>('setCategoryBudget', input);
+
+export const deleteCategoryBudget = (input: CategoryBudgetKey) =>
+  mutate<null>('deleteCategoryBudget', input);
+
+// ----- Settings & onboarding -----
+
+export const getSettings = () => call<Settings>('getSettings');
+
+export const updateSettings = (input: UpdateSettingsInput) => mutate<Settings>('updateSettings', input);
+
+/** Saves everything onboarding collected in one database transaction. */
+export const completeOnboarding = (input: OnboardingInput) =>
+  mutate<Settings>('completeOnboarding', input);
 
 // ----- Reports -----
 

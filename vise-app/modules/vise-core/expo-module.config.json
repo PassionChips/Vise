@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["ViseCoreModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.visecore.ViseCoreModule"]
+  }
+}

@@ -141,34 +141,6 @@ export function TextField({ label, value, onChangeText, placeholder, helperText,
   );
 }
 
-// ----- Note (multiline) -----
-
-export function NoteField({ label, value, onChangeText, placeholder }: Omit<TextFieldProps, 'helperText' | 'error'>) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <FieldFrame label={label} focused={focused} fieldStyle={styles.noteField}>
-      {(fieldStyle) => (
-        <View style={fieldStyle}>
-          <TextInput
-            accessibilityLabel={label}
-            value={value}
-            onChangeText={onChangeText}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            placeholder={placeholder}
-            placeholderTextColor={color.content.secondary}
-            selectionColor={color.brand.primary}
-            cursorColor={color.brand.primary}
-            multiline
-            textAlignVertical="top"
-            style={[type.bodyLarge, styles.input]}
-          />
-        </View>
-      )}
-    </FieldFrame>
-  );
-}
-
 // ----- Select -----
 
 export interface SelectOption<T extends string> {
@@ -304,12 +276,6 @@ const styles = StyleSheet.create({
   },
   textField: {
     height: 52,
-    borderRadius: radius.sm,
-  },
-  noteField: {
-    height: 96,
-    alignItems: 'flex-start',
-    paddingVertical: spacing[12],
     borderRadius: radius.sm,
   },
   // 2px borders: shrink the padding by 1px so the content does not shift.

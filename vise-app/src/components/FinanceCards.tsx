@@ -33,9 +33,10 @@ interface FinancialSummaryCardProps {
   supportingText: string;
   /** Income only: shows a trend icon and colours the supporting text green. */
   trendUp?: boolean;
+  currency?: string;
 }
 
-export function FinancialSummaryCard({ type: kind, amountCents, supportingText, trendUp }: FinancialSummaryCardProps) {
+export function FinancialSummaryCard({ type: kind, amountCents, supportingText, trendUp, currency }: FinancialSummaryCardProps) {
   const { label, icon: Icon, tile, iconColor } = SUMMARY[kind];
   const amountColor =
     kind === 'remaining'
@@ -49,7 +50,7 @@ export function FinancialSummaryCard({ type: kind, amountCents, supportingText, 
     >
       <View
         accessible
-        accessibilityLabel={`${label}, ${formatMoney(amountCents)}, ${supportingText}`}
+        accessibilityLabel={`${label}, ${formatMoney(amountCents, { currency })}, ${supportingText}`}
         style={styles.summaryInner}
       >
         <View style={styles.row8}>
@@ -59,7 +60,7 @@ export function FinancialSummaryCard({ type: kind, amountCents, supportingText, 
           <Text style={[type.bodySmall, styles.secondary]}>{label}</Text>
         </View>
         <Text numberOfLines={1} adjustsFontSizeToFit style={[type.numericMedium, { color: amountColor }]}>
-          {formatMoney(amountCents)}
+          {formatMoney(amountCents, { currency })}
         </Text>
         <View style={styles.row4}>
           {trendUp && <TrendingUp size={14} strokeWidth={2} color={color.feedback.success} />}
@@ -156,18 +157,24 @@ interface TransactionRowProps {
   subtitle: string;
   amountCents: number;
   icon: string | null;
+  currency?: string;
   onPress?: () => void;
+  /** Opens the editor; also exposed as an accessibility action. */
+  onLongPress?: () => void;
 }
 
 /** Sign AND colour show direction: income green, expenses neutral. */
-export function TransactionRow({ title, subtitle, amountCents, icon, onPress }: TransactionRowProps) {
+export function TransactionRow({ title, subtitle, amountCents, icon, currency, onPress, onLongPress }: TransactionRowProps) {
   const income = amountCents > 0;
-  const amount = formatMoney(amountCents, { sign: 'always' });
+  const amount = formatMoney(amountCents, { sign: 'always', currency });
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${title}, ${subtitle}, ${income ? 'income' : 'expense'} ${formatMoney(Math.abs(amountCents))}`}
+      accessibilityLabel={`${title}, ${subtitle}, ${income ? 'income' : 'expense'} ${formatMoney(Math.abs(amountCents), { currency })}`}
       onPress={onPress}
+      onLongPress={onLongPress}
+      accessibilityActions={onLongPress ? [{ name: 'longpress', label: 'Edit' }] : undefined}
+      onAccessibilityAction={onLongPress ? () => onLongPress() : undefined}
       style={({ pressed }) => [styles.transaction, pressed && styles.transactionPressed]}
     >
       <View style={[styles.tile40, { borderRadius: radius.full, backgroundColor: income ? color.feedback.successSubtle : color.surface.variant }]}>

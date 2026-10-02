@@ -1,0 +1,136 @@
+name: Android App
+
+# Builds the real Android app (Rust core + Expo module + JS bundle) and starts it on an emulator.
+# Catches: a broken native build, a missing Rust library in the APK, a database that fails to open,
+# and a crash on launch.
+on:
+  pull_request:
+    paths:
+      - "vise-app/**"
+      - ".github/workflows/android-app.yml"
+  push:
+    branches: [main]
+    paths:
+      - "vise-app/**"
+      - ".github/workflows/android-app.yml"
+
+concurrency:
+  group: android-app-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Android app
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    defaults:
+      run:
+        working-directory: vise-app
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: vise-app/package-lock.json
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+
+      - name: Install cargo-ndk
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-ndk
+
+      - name: Cache Cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            vise-app/rust-core/target
+          key: ${{ runner.os }}-app-cargo-${{ hashFiles('vise-app/rust-core/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-app-cargo-
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Build the Rust core for Android
+        run: |
+          export ANDROID_NDK_HOME="${ANDROID_NDK_LATEST_HOME:-$ANDROID_NDK_ROOT}"
+          test -d "$ANDROID_NDK_HOME"
+          ./scripts/build-android-core.sh
+
+      # android/ is generated from app.json and the modules/ folder; it is not committed.
+      - name: Generate the native Android project
+        run: npx expo prebuild --platform android --no-install
+
+      # A release build bundles the JavaScript, so it starts without a dev server.
+      # (Expo signs it with the debug keystore, which is fine for a CI build.)
+      - name: Build release APK
+        working-directory: vise-app/android
+        run: ./gradlew app:assembleRelease -x lint -x test -PreactNativeArchitectures=x86_64,arm64-v8a --no-daemon
+
+      - name: Check the Rust library is inside the APK
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          ls -la "$APK"
+          for abi in x86_64 arm64-v8a; do
+            unzip -l "$APK" | grep -q "lib/$abi/librust_core.so" || { echo "::error::librust_core.so missing for $abi"; exit 1; }
+          done
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: vise-release-apk
+          path: vise-app/android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 7
+
+  smoke-test:
+    name: Run on Android emulator
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: vise-release-apk
+          path: apk
+
+      # Hardware acceleration for the emulator on GitHub's Linux runners.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Start emulator and run the smoke test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: ./vise-app/scripts/android-smoke-test.sh apk/app-release.apk

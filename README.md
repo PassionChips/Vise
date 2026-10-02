@@ -29,13 +29,15 @@ no account and no cloud sync.
 | Validation + use-case layer (`service`) | ✅ Done |
 | JSON API for the frontend (`api::dispatch`) | ✅ Done |
 | TypeScript client for the API (`src/services/viseCore.ts`) | ✅ Done (type-checked) |
-| Native bridge (Expo module: Kotlin/Swift → Rust) | ⏳ Not started (needs Android SDK / Xcode) |
-| Onboarding (Figma "1 · Onboarding") | ✅ Built; saves through `viseCore` once the bridge exists |
-| Main app screens (Figma "2 · Main app (tabs)") | ✅ Built with demo data; not yet wired to `viseCore` |
+| Native bridge (Expo module: Kotlin/Swift → Rust) | 🟡 Android: Rust library cross-compiles, module written, not yet run on a device. iOS: written, untested (needs macOS) |
+| Onboarding (Figma "1 · Onboarding") | ✅ Saved atomically through `completeOnboarding`; completion persisted in `app_settings` |
+| Main app screens + add/edit/delete flows | ✅ Read from and write to SQLite through `viseCore`; no demo data |
 
-The app opens on onboarding, then the tab screens (Dashboard, Transactions, Budgets,
-Reports, Settings) and Goals, which render from `src/data/demo.ts` until the native
-bridge exists. Onboarding completion is not persisted yet, so it shows on every launch.
+The app opens on onboarding until it has been saved, then the tab screens (Dashboard, Transactions,
+Budgets, Reports, Settings). Every screen reads its data from SQLite through the Rust core, and every
+change is validated and saved by Rust. If the native core is not built into the app, screens show an
+error instead of sample data. See [docs/PERSISTENCE.md](docs/PERSISTENCE.md) for the data flow, schema,
+onboarding mapping and tests.
 
 ---
 
@@ -45,11 +47,13 @@ bridge exists. Onboarding completion is not persisted yet, so it shows on every 
 Vise/
 ├── .github/workflows/        CI: Rust tests, clippy + fmt, TypeScript type-check
 └── vise-app/                 Expo app
-    ├── app/                  Expo Router routes: onboarding.tsx, (tabs)/ for the 5 tabs, goals.tsx
+    ├── app/                  Expo Router routes: onboarding, (tabs)/ for the 5 tabs, add-transaction, budget-form, edit-setting
     ├── src/components/       Design-system components (cards, charts, controls, nav)
     ├── src/theme/tokens.ts   Colours, spacing, radii and text styles from Figma
     ├── src/features/onboarding/  Onboarding steps, flow state and saving via viseCore
-    ├── src/data/demo.ts      Demo data shown until the Rust bridge exists
+    ├── src/data/             useCoreQuery + invalidation, finance reads, form pickers
+    ├── modules/vise-core/    Expo native module (Kotlin / Swift) that calls the Rust core
+    ├── scripts/              build-android-core.sh, build-ios-core.sh
     ├── src/format.ts         Money and date display formatting
     ├── src/services/
     │   ├── types.ts          TS mirrors of the Rust JSON types
@@ -127,7 +131,11 @@ cargo fmt --check        # `cargo fmt` to fix
 # TypeScript
 cd vise-app
 npx tsc --noEmit
+npm test                 # Vitest: bridge client, onboarding payload, API contract, no-demo-data guards
 ```
+
+Rust tests include `tests/persistence.rs` (a real SQLite file reopened between steps) and
+`tests/contract.rs` (JSON shapes checked against `rust-core/contracts/api-shapes.json`).
 
 Rust tests use an in-memory SQLite database
 (`db::connection::establish_connection_test`), so they never touch `vise.db`.
@@ -218,19 +226,28 @@ Until that module exists, every call rejects with `ViseError` kind
 | `predictSpending` | `predictSpending` | `{month, currency}` | `Prediction` |
 
 Errors look like `{ "kind": "validation", "field": "amount", "message": "Amount must be greater than zero" }`.
-The possible kinds are `validation`, `not_found`, `invalid_request` and `database`.
+The possible kinds are `validation`, `not_found`, `invalid_request`, `database` and (frontend only) `bridge_unavailable`.
 Database errors show a generic message, so raw SQL errors never reach the UI.
 Unknown payload fields are rejected, which catches typos early.
 
-### Rust bridge (to do)
+### Rust bridge
 
-The native glue still needs to be written. Plan:
-1. Expose `api::dispatch` through a C ABI (`extern "C"`, strings in and out)
-   that holds one connection opened on the app's private data directory.
-2. Scaffold an Expo module named `ViseCore` with
-   `npx create-expo-module --local` and implement `call` in Kotlin (via JNI) and Swift.
-3. Cross-compile with targets `aarch64-linux-android`, `x86_64-linux-android`,
-   `aarch64-apple-ios` and `aarch64-apple-ios-sim`, then wire the build into EAS.
+Implemented: `rust-core/src/ffi.rs` holds one connection (behind a `Mutex`) and exposes `api::dispatch`
+through JNI (Android) and a C ABI (iOS). The Expo module `modules/vise-core` opens `vise.db` in the
+app's private storage and forwards `call(method, payloadJson)`.
+
+```bash
+cd vise-app
+./scripts/build-android-core.sh   # needs Android SDK + NDK, cargo-ndk, Rust Android targets
+npx expo run:android              # a dev build; Expo Go cannot load the native module
+```
+
+The Android library cross-compiles in CI (`android-core.yml`). Running it on a device and the iOS module
+(`scripts/build-ios-core.sh`, macOS only) are not yet verified. Details: [docs/PERSISTENCE.md](docs/PERSISTENCE.md).
+
+New API methods: `getSettings`, `updateSettings`, `completeOnboarding`, `updateTransaction`,
+`deleteCategoryBudget`. The `app_settings` table stores currency, name, expected monthly income, its income
+source, warning threshold and whether onboarding finished.
 
 ---
 
@@ -245,7 +262,8 @@ so existing databases are upgraded in place.
 | `income_sources` | Salary, freelance, … |
 | `expense_categories` | Groceries, rent, … (name unique, case-insensitive) |
 | `budget_months` | Spending limit & savings target per `(month, currency)` |
-| `category_budgets` | Limit per category per budget month **(new)** |
+| `category_budgets` | Limit per category per budget month |
+| `app_settings` | One row: currency, name, expected monthly income + its source, warning threshold, onboarding completion **(new)** |
 | `transactions` | Every income/expense/refund/transfer, amounts in cents |
 | `revolut_accounts`, `sync_state`, `auto_category_rules` | Reserved for post-MVP bank sync |
 
@@ -291,7 +309,7 @@ trend, prediction). Every data call they need already exists in `viseCore.ts`.
 
 ## Roadmap
 
-1. **Native bridge**: see [Rust bridge](#rust-bridge-to-do).
+1. **Native bridge**: verify on an Android device, then iOS (see [Rust bridge](#rust-bridge)).
 2. **Screens & navigation** from the exported design, using React Navigation
    (bottom tabs). Each screen needs loading, empty and error states, and
    validation errors shown next to the matching `field`.
