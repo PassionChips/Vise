@@ -46,6 +46,21 @@ pub fn get_all(connection: &mut SqliteConnection) -> QueryResult<Vec<Transaction
         .load(connection)
 }
 
+/// Transactions with `start <= occurred_at < end`, newest first.
+/// Uses the `idx_transactions_occurred_at` index.
+pub fn get_in_range(
+    connection: &mut SqliteConnection,
+    start: i64,
+    end: i64,
+) -> QueryResult<Vec<Transaction>> {
+    transactions::table
+        .filter(transactions::occurred_at.ge(start))
+        .filter(transactions::occurred_at.lt(end))
+        .select(Transaction::as_select())
+        .order((transactions::occurred_at.desc(), transactions::id.desc()))
+        .load(connection)
+}
+
 pub fn get_by_id(
     connection: &mut SqliteConnection,
     source_id: i32,
@@ -223,6 +238,26 @@ mod tests {
         let result = update(&mut connection, &changes, 99999).unwrap();
 
         assert_eq!(result, None);
+    }
+
+    #[test]
+    fn get_in_range_excludes_end_and_orders_newest_first() {
+        let mut connection = establish_connection_test().unwrap();
+
+        let mut old = sample_transaction("Old".to_string());
+        old.occurred_at = 100;
+        let mut new = sample_transaction("New".to_string());
+        new.occurred_at = 150;
+        let mut at_end = sample_transaction("At end".to_string());
+        at_end.occurred_at = 200;
+        for t in [&old, &new, &at_end] {
+            insert(&mut connection, t).unwrap();
+        }
+
+        let found = get_in_range(&mut connection, 100, 200).unwrap();
+
+        let names: Vec<&str> = found.iter().map(|t| t.description.as_str()).collect();
+        assert_eq!(names, vec!["New", "Old"]);
     }
 
     #[test]

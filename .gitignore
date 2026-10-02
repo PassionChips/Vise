@@ -1,0 +1,46 @@
+# Repo-wide ignore rules. App-specific rules live in vise-app/.gitignore.
+
+# ── Local databases (contain personal financial data — never commit) ──
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# ── Secrets / environment ──
+.env
+.env.*
+!.env.example
+
+# ── Rust build output ──
+target/
+**/*.rs.bk
+
+# ── JavaScript dependencies ──
+node_modules/
+
+# ── Python ──
+__pycache__/
+*.pyc
+.venv/
+
+# ── Logs ──
+*.log
+
+# ── OS files ──
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ── Editors / IDEs ──
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Local AI-assistant files ──
+.claude/
+CLAUDE.md
+AGENTS.md
