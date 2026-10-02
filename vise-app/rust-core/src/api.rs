@@ -40,6 +40,12 @@ struct MonthCurrencyPayload {
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+struct TodayPayload {
+    today: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct TrendPayload {
     month: String,
     currency: String,
@@ -82,6 +88,12 @@ fn handle(
             connection,
             &parse(payload)?,
         )),
+        "getDataOverview" => to_json(service::data::get_data_overview(connection)),
+        "exportDataCsv" => {
+            let TodayPayload { today } = parse(payload)?;
+            to_json(service::data::export_csv(connection, &today))
+        }
+        "deleteAllData" => to_json(service::data::delete_all_data(connection, &parse(payload)?)),
         "deleteCategoryBudget" => {
             service::delete_category_budget(connection, &parse(payload)?)?;
             Ok(Value::Null)
@@ -226,6 +238,52 @@ mod tests {
 
         assert_eq!(reply["data"]["spent_cents"], 1250);
         assert_eq!(reply["data"]["status"], "no_limit");
+    }
+
+    #[test]
+    fn appearance_avatar_export_and_delete_round_trip() {
+        let mut connection = establish_connection_test().unwrap();
+
+        let theme = call(&mut connection, "updateSettings", r#"{"theme":"dark"}"#);
+        assert_eq!(theme["data"]["theme"], "dark");
+        assert_eq!(
+            call(&mut connection, "getSettings", "")["data"]["theme"],
+            "dark"
+        );
+
+        let avatar = call(&mut connection, "updateSettings", r#"{"avatar":"rocket"}"#);
+        assert_eq!(avatar["data"]["avatar"], "rocket");
+        let unknown = call(&mut connection, "updateSettings", r#"{"avatar":"dragon"}"#);
+        assert_eq!(unknown["error"]["field"], "avatar");
+
+        call(
+            &mut connection,
+            "addTransaction",
+            r#"{"transaction_type":"expense","amount":"12.50","currency":"EUR","description":"Lunch","date":"2026-09-02"}"#,
+        );
+        let export = call(
+            &mut connection,
+            "exportDataCsv",
+            r#"{"today":"2026-10-04"}"#,
+        );
+        assert_eq!(export["data"]["transaction_count"], 1);
+        assert!(export["data"]["csv"].as_str().unwrap().contains("Lunch"));
+
+        let refused = call(&mut connection, "deleteAllData", r#"{"confirm":"yes"}"#);
+        assert_eq!(refused["error"]["field"], "confirm");
+        assert_eq!(
+            call(&mut connection, "getDataOverview", "")["data"]["transactions"],
+            1
+        );
+
+        let deleted = call(&mut connection, "deleteAllData", r#"{"confirm":"DELETE"}"#);
+        assert_eq!(deleted["data"]["transactions"], 1);
+        let overview = call(&mut connection, "getDataOverview", "");
+        assert_eq!(overview["data"]["transactions"], 0);
+        assert_eq!(
+            call(&mut connection, "getSettings", "")["data"]["avatar"],
+            Value::Null
+        );
     }
 
     #[test]

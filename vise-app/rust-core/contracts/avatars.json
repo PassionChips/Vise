@@ -1,0 +1,4 @@
+{
+  "_comment": "Preset avatar ids users can choose (Settings › tap the avatar). Checked by rust-core (service::settings::AVATARS) and by src/__tests__/avatars.test.ts against src/data/avatars.ts. Change all three together; never remove an id that may already be stored.",
+  "avatars": ["cat", "dog", "rabbit", "panda", "bird", "fish", "turtle", "squirrel", "sprout", "sun", "moon", "rocket"]
+}

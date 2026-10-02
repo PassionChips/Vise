@@ -7,10 +7,10 @@ import {
   Wallet,
 } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { formatMoney, percentOf } from '../format';
-import { color, radius, spacing, type } from '../theme/tokens';
+import { color, radius, spacing, themed, type } from '../theme/tokens';
 import { BudgetStatus, budgetHealth, healthColor } from './BudgetStatus';
 import { Card } from './Card';
 import { CategoryIcon } from './CategoryIcon';
@@ -20,12 +20,13 @@ import { ProgressBar } from './ProgressBar';
 
 type SummaryType = 'income' | 'spending' | 'remaining' | 'predicted';
 
-const SUMMARY: Record<SummaryType, { label: string; icon: LucideIcon; tile: string; iconColor: string }> = {
+// A function, not a constant: colours must be read at render time so the theme can change.
+const summary = (): Record<SummaryType, { label: string; icon: LucideIcon; tile: string; iconColor: string }> => ({
   income: { label: 'Income', icon: ArrowDownLeft, tile: color.feedback.successSubtle, iconColor: color.brand.primary },
   spending: { label: 'Spending', icon: ArrowUpRight, tile: color.surface.variant, iconColor: color.content.primary },
   remaining: { label: 'Remaining', icon: Wallet, tile: color.feedback.successSubtle, iconColor: color.brand.primary },
   predicted: { label: 'Predicted', icon: Sparkles, tile: color.feedback.infoSubtle, iconColor: color.finance.predicted },
-};
+});
 
 interface FinancialSummaryCardProps {
   type: SummaryType;
@@ -37,7 +38,7 @@ interface FinancialSummaryCardProps {
 }
 
 export function FinancialSummaryCard({ type: kind, amountCents, supportingText, trendUp, currency }: FinancialSummaryCardProps) {
-  const { label, icon: Icon, tile, iconColor } = SUMMARY[kind];
+  const { label, icon: Icon, tile, iconColor } = summary()[kind];
   const amountColor =
     kind === 'remaining'
       ? amountCents < 0 ? color.finance.overBudget : color.finance.remaining
@@ -234,7 +235,7 @@ export function GoalCard({ name, icon, subtitle, savedCents, targetCents }: Goal
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   primary: { color: color.content.primary },
   secondary: { color: color.content.secondary },
   success: { color: color.feedback.success },
@@ -284,4 +285,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   transactionPressed: { backgroundColor: color.surface.variant },
-});
+}));

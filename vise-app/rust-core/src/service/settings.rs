@@ -40,7 +40,21 @@ pub struct SettingsView {
     pub income_source_name: Option<String>,
     pub warning_threshold_percent: i32,
     pub onboarding_completed: bool,
+    /// "system" (follow the device), "light" or "dark".
+    pub theme: String,
+    /// Preset avatar id (one of [`AVATARS`]), or null to show initials.
+    pub avatar: Option<String>,
 }
+
+/// Values accepted for `theme`.
+pub const THEMES: [&str; 3] = ["system", "light", "dark"];
+
+/// Preset avatars the user can pick. Mirrored in `contracts/avatars.json`
+/// and `src/data/avatars.ts`; never remove an id that may already be stored.
+pub const AVATARS: [&str; 12] = [
+    "cat", "dog", "rabbit", "panda", "bird", "fish", "turtle", "squirrel", "sprout", "sun", "moon",
+    "rocket",
+];
 
 /// Fields left out are unchanged. For `display_name` and `monthly_income`
 /// an empty string clears the value.
@@ -58,6 +72,12 @@ pub struct UpdateSettingsInput {
     pub income_source_id: Option<i32>,
     #[serde(default)]
     pub warning_threshold_percent: Option<i32>,
+    /// "system", "light" or "dark".
+    #[serde(default)]
+    pub theme: Option<String>,
+    /// A preset avatar id; an empty string goes back to initials.
+    #[serde(default)]
+    pub avatar: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -127,6 +147,8 @@ fn view(
         income_source_name,
         warning_threshold_percent: settings.warning_threshold_percent,
         onboarding_completed: settings.onboarding_completed_at.is_some(),
+        theme: settings.theme,
+        avatar: settings.avatar,
     })
 }
 
@@ -165,6 +187,26 @@ pub fn update_settings(
             ));
         }
         changes.warning_threshold_percent = Some(percent);
+    }
+    if let Some(theme) = &input.theme {
+        let theme = theme.trim().to_ascii_lowercase();
+        if !THEMES.contains(&theme.as_str()) {
+            return Err(AppError::validation(
+                "theme",
+                "Choose Light, Dark or System",
+            ));
+        }
+        changes.theme = Some(theme);
+    }
+    if let Some(avatar) = &input.avatar {
+        let avatar = avatar.trim();
+        changes.avatar = Some(if avatar.is_empty() {
+            None
+        } else if AVATARS.contains(&avatar) {
+            Some(avatar.to_string())
+        } else {
+            return Err(AppError::validation("avatar", "Choose one of the avatars"));
+        });
     }
 
     let updated = app_settings_repository::update(connection, &changes)?;
@@ -562,6 +604,89 @@ mod tests {
     }
 
     #[test]
+    fn theme_defaults_to_system_and_is_validated() {
+        let mut connection = establish_connection_test().unwrap();
+        assert_eq!(get_settings(&mut connection).unwrap().theme, "system");
+
+        let input = |theme: &str| UpdateSettingsInput {
+            currency: None,
+            display_name: None,
+            monthly_income: None,
+            income_source_id: None,
+            warning_threshold_percent: None,
+            theme: Some(theme.to_string()),
+            avatar: None,
+        };
+        assert_eq!(
+            update_settings(&mut connection, &input("Dark"))
+                .unwrap()
+                .theme,
+            "dark"
+        );
+        // Persisted, not just echoed back.
+        assert_eq!(get_settings(&mut connection).unwrap().theme, "dark");
+
+        let error = update_settings(&mut connection, &input("sepia")).unwrap_err();
+        assert!(matches!(error, AppError::Validation { ref field, .. } if field == "theme"));
+        assert_eq!(get_settings(&mut connection).unwrap().theme, "dark");
+    }
+
+    #[test]
+    fn avatar_is_chosen_from_the_presets_and_can_be_cleared() {
+        let mut connection = establish_connection_test().unwrap();
+        assert_eq!(get_settings(&mut connection).unwrap().avatar, None);
+
+        let input = |avatar: &str| UpdateSettingsInput {
+            currency: None,
+            display_name: None,
+            monthly_income: None,
+            income_source_id: None,
+            warning_threshold_percent: None,
+            theme: None,
+            avatar: Some(avatar.to_string()),
+        };
+        update_settings(&mut connection, &input("panda")).unwrap();
+        assert_eq!(
+            get_settings(&mut connection).unwrap().avatar.as_deref(),
+            Some("panda")
+        );
+
+        for bad in [
+            "unicorn",
+            "PANDA",
+            "https://example.com/me.png",
+            "data:image/png;base64,AAAA",
+        ] {
+            let error = update_settings(&mut connection, &input(bad)).unwrap_err();
+            assert!(
+                matches!(error, AppError::Validation { ref field, .. } if field == "avatar"),
+                "{bad}"
+            );
+        }
+        // The rejected values changed nothing.
+        assert_eq!(
+            get_settings(&mut connection).unwrap().avatar.as_deref(),
+            Some("panda")
+        );
+
+        update_settings(&mut connection, &input("")).unwrap();
+        assert_eq!(get_settings(&mut connection).unwrap().avatar, None);
+    }
+
+    #[test]
+    fn avatar_list_matches_the_shared_contract() {
+        let contract: serde_json::Value =
+            serde_json::from_str(include_str!("../../contracts/avatars.json")).unwrap();
+        let ids: Vec<&str> = contract["avatars"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_str().unwrap())
+            .collect();
+        assert_eq!(ids, AVATARS);
+    }
+
+    #[test]
     fn settings_changes_are_stored_and_validated() {
         let mut connection = establish_connection_test().unwrap();
         complete_onboarding(&mut connection, &onboarding()).unwrap();
@@ -574,6 +699,8 @@ mod tests {
                 monthly_income: Some("5000".to_string()),
                 income_source_id: None,
                 warning_threshold_percent: Some(90),
+                theme: None,
+                avatar: None,
             },
         )
         .unwrap();
@@ -596,6 +723,8 @@ mod tests {
                 monthly_income: None,
                 income_source_id: None,
                 warning_threshold_percent: None,
+                theme: None,
+                avatar: None,
             },
             UpdateSettingsInput {
                 currency: None,
@@ -603,6 +732,8 @@ mod tests {
                 monthly_income: None,
                 income_source_id: Some(999),
                 warning_threshold_percent: None,
+                theme: None,
+                avatar: None,
             },
             UpdateSettingsInput {
                 currency: None,
@@ -610,6 +741,8 @@ mod tests {
                 monthly_income: None,
                 income_source_id: None,
                 warning_threshold_percent: Some(0),
+                theme: None,
+                avatar: None,
             },
         ] {
             assert!(matches!(

@@ -9,6 +9,7 @@
 //! The frontend never does money maths or validation itself; it sends the
 //! raw form values here and displays what comes back.
 
+pub mod data;
 pub mod settings;
 
 use chrono::NaiveDate;

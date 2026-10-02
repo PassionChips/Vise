@@ -1,8 +1,8 @@
 import { ChevronRight, type LucideIcon } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, Switch, Text, View } from 'react-native';
 
-import { color, radius, spacing, type } from '../theme/tokens';
+import { color, radius, spacing, themed, type } from '../theme/tokens';
 
 /** Uppercase section header above a settings group. */
 export function SettingsSectionHeader({ title }: { title: string }) {
@@ -87,7 +87,7 @@ export function SettingsRow(props: SettingsRowProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   secondary: { color: color.content.secondary },
   sectionHeader: { paddingLeft: 4, paddingTop: spacing[16] },
   group: {
@@ -117,4 +117,4 @@ const styles = StyleSheet.create({
   },
   tileDestructive: { backgroundColor: color.feedback.errorSubtle },
   label: { flex: 1 },
-});
+}));

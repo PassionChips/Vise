@@ -21,6 +21,16 @@ pub fn parse_limit_cents(input: &str) -> Result<i64, String> {
     parse_cents(input)
 }
 
+/// Formats cents as a plain decimal string for files such as the CSV
+/// export: `1250` → `"12.50"`, `-5` → `"-0.05"`. No currency symbol or
+/// thousands separator, so the value can be parsed back by
+/// [`parse_amount_cents`].
+pub fn format_cents(cents: i64) -> String {
+    let sign = if cents < 0 { "-" } else { "" };
+    let abs = cents.unsigned_abs();
+    format!("{sign}{}.{:02}", abs / 100, abs % 100)
+}
+
 /// Shared parser for non-negative amounts.
 ///
 /// A single comma is accepted as the decimal separator because many
@@ -69,6 +79,18 @@ fn parse_cents(input: &str) -> Result<i64, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn format_cents_round_trips() {
+        assert_eq!(format_cents(0), "0.00");
+        assert_eq!(format_cents(5), "0.05");
+        assert_eq!(format_cents(1250), "12.50");
+        assert_eq!(format_cents(-1250), "-12.50");
+        assert_eq!(format_cents(123_456_789), "1234567.89");
+        for cents in [1, 99, 100, 1250, 987_654] {
+            assert_eq!(parse_amount_cents(&format_cents(cents)), Ok(cents));
+        }
+    }
 
     #[test]
     fn parses_whole_and_decimal_amounts() {

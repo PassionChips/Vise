@@ -65,4 +65,21 @@ fn reply_shapes_match_the_contract() {
         json!({ "month": "2026-09" }),
     );
     assert_eq!(keys(&transactions[0]), expected("Transaction"));
+
+    let overview = call(&mut connection, "getDataOverview", json!({}));
+    assert_eq!(keys(&overview), expected("DataOverview"));
+
+    let export = call(
+        &mut connection,
+        "exportDataCsv",
+        json!({ "today": "2026-10-04" }),
+    );
+    assert_eq!(keys(&export), expected("CsvExport"));
+
+    let deleted = call(
+        &mut connection,
+        "deleteAllData",
+        json!({ "confirm": "DELETE" }),
+    );
+    assert_eq!(keys(&deleted), expected("DeletedCounts"));
 }

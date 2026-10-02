@@ -18,6 +18,9 @@ import type {
   CategoryBudget,
   CategoryBudgetInput,
   CategoryBudgetKey,
+  CsvExport,
+  DataOverview,
+  DeletedCounts,
   ErrorBody,
   ErrorKind,
   ExpenseCategory,
@@ -56,6 +59,21 @@ export class ViseError extends Error {
   }
 }
 
+/**
+ * The Rust library is built separately from the JS (scripts/build-android-core.sh).
+ * If it is older than the app, new methods are unknown to it; say so plainly
+ * instead of showing "Unknown method".
+ */
+export function explain(method: string, error: ErrorBody): ErrorBody {
+  if (error.kind === 'invalid_request' && error.message.startsWith('Unknown method')) {
+    return {
+      kind: 'invalid_request',
+      message: `This feature needs a newer VISE core than the one in this build (missing “${method}”). Rebuild the core and reinstall the app.`,
+    };
+  }
+  return error;
+}
+
 type Reply<T> = { ok: true; data: T } | { ok: false; error: ErrorBody };
 
 async function call<T>(method: string, payload: object = {}): Promise<T> {
@@ -68,7 +86,7 @@ async function call<T>(method: string, payload: object = {}): Promise<T> {
   }
   const reply = JSON.parse(await native.call(method, JSON.stringify(payload))) as Reply<T>;
   if (!reply.ok) {
-    throw new ViseError(reply.error);
+    throw new ViseError(explain(method, reply.error));
   }
   return reply.data;
 }
@@ -125,6 +143,16 @@ export const updateSettings = (input: UpdateSettingsInput) => mutate<Settings>('
 /** Saves everything onboarding collected in one database transaction. */
 export const completeOnboarding = (input: OnboardingInput) =>
   mutate<Settings>('completeOnboarding', input);
+
+// ----- Data: export and delete -----
+
+export const getDataOverview = () => call<DataOverview>('getDataOverview');
+
+/** Builds the CSV of everything stored; `today` (YYYY-MM-DD) names the file. */
+export const exportDataCsv = (today: string) => call<CsvExport>('exportDataCsv', { today });
+
+/** Erases all user data in one transaction; onboarding starts again afterwards. */
+export const deleteAllData = () => mutate<DeletedCounts>('deleteAllData', { confirm: 'DELETE' });
 
 // ----- Reports -----
 

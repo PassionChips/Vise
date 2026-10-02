@@ -121,8 +121,7 @@ fn settings_migration_keeps_existing_user_data() {
     // A database as it was before the settings migration existed.
     let mut connection = SqliteConnection::establish(path.to_str().unwrap()).unwrap();
     configure_connection(&mut connection).unwrap();
-    let total = migration_count();
-    for _ in 0..total - 1 {
+    for _ in 0..migrations_before("app_settings") {
         connection.run_next_migration(MIGRATIONS).unwrap();
     }
     connection
@@ -150,10 +149,111 @@ fn settings_migration_keeps_existing_user_data() {
     assert_eq!(settings["onboarding_completed"], false);
 }
 
-/// Number of embedded migrations.
-fn migration_count() -> usize {
+/// How many embedded migrations come before the one whose name ends with `suffix`.
+fn migrations_before(suffix: &str) -> usize {
     use diesel::migration::MigrationSource;
-    MigrationSource::<diesel::sqlite::Sqlite>::migrations(&MIGRATIONS)
-        .unwrap()
-        .len()
+    let migrations = MigrationSource::<diesel::sqlite::Sqlite>::migrations(&MIGRATIONS).unwrap();
+    migrations
+        .iter()
+        .position(|m| m.name().to_string().ends_with(suffix))
+        .unwrap_or_else(|| panic!("no migration named *{suffix}"))
+}
+
+#[test]
+fn appearance_migration_keeps_onboarding_and_defaults_to_system() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("vise.db");
+
+    // A database from before the appearance migration, already onboarded.
+    let mut connection = SqliteConnection::establish(path.to_str().unwrap()).unwrap();
+    configure_connection(&mut connection).unwrap();
+    for _ in 0..migrations_before("appearance_avatar") {
+        connection.run_next_migration(MIGRATIONS).unwrap();
+    }
+    connection
+        .batch_execute(
+            "INSERT INTO income_sources (name) VALUES ('Salary');
+             UPDATE app_settings SET currency = 'GBP', display_name = 'Aoife',
+               monthly_income_cents = 300000, income_source_id = 1,
+               warning_threshold_percent = 75, onboarding_completed_at = 1788000000;
+             INSERT INTO transactions (source_type, transaction_type, amount_cents, description, occurred_at, income_source_id)
+               VALUES ('manual', 'income', 300000, 'Pay', 1788000000, 1);",
+        )
+        .unwrap();
+    drop(connection);
+
+    let mut upgraded = establish_connection(&path).unwrap();
+    let settings = call(&mut upgraded, "getSettings", json!({}))["data"].clone();
+    assert_eq!(settings["theme"], "system");
+    assert_eq!(settings["onboarding_completed"], true);
+    assert_eq!(settings["currency"], "GBP");
+    assert_eq!(settings["display_name"], "Aoife");
+    assert_eq!(settings["monthly_income_cents"], 300_000);
+    assert_eq!(settings["income_source_name"], "Salary");
+    assert_eq!(settings["warning_threshold_percent"], 75);
+    assert_eq!(
+        call(&mut upgraded, "getDataOverview", json!({}))["data"]["transactions"],
+        1
+    );
+    assert_eq!(settings["avatar"], Value::Null);
+}
+
+#[test]
+fn theme_avatar_and_deletion_survive_a_restart() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("vise.db");
+
+    {
+        let mut connection = establish_connection(&path).unwrap();
+        call(
+            &mut connection,
+            "completeOnboarding",
+            json!({ "currency": "EUR", "today": "2026-09-18", "monthly_income": "100" }),
+        );
+        assert_eq!(
+            call(
+                &mut connection,
+                "updateSettings",
+                json!({ "theme": "light" })
+            )["ok"],
+            true
+        );
+        assert_eq!(
+            call(
+                &mut connection,
+                "updateSettings",
+                json!({ "avatar": "sun" })
+            )["ok"],
+            true
+        );
+    }
+    {
+        let mut connection = establish_connection(&path).unwrap();
+        assert_eq!(
+            call(&mut connection, "getSettings", json!({}))["data"]["theme"],
+            "light"
+        );
+        assert_eq!(
+            call(&mut connection, "getSettings", json!({}))["data"]["avatar"],
+            "sun"
+        );
+        let deleted = call(
+            &mut connection,
+            "deleteAllData",
+            json!({ "confirm": "DELETE" }),
+        );
+        assert_eq!(deleted["ok"], true, "{deleted}");
+    }
+    {
+        let mut connection = establish_connection(&path).unwrap();
+        let settings = call(&mut connection, "getSettings", json!({}))["data"].clone();
+        assert_eq!(settings["onboarding_completed"], false);
+        assert_eq!(settings["monthly_income_cents"], Value::Null);
+        assert_eq!(settings["theme"], "light");
+        assert_eq!(settings["avatar"], Value::Null);
+        assert_eq!(
+            call(&mut connection, "getDataOverview", json!({}))["data"]["income_sources"],
+            0
+        );
+    }
 }

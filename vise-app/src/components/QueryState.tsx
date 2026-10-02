@@ -2,10 +2,10 @@
 
 import { CircleAlert } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 
 import type { Query } from '../data/store';
-import { color, spacing, type } from '../theme/tokens';
+import { color, spacing, themed, type } from '../theme/tokens';
 import { SecondaryButton } from './Buttons';
 
 export function LoadingView() {
@@ -45,9 +45,9 @@ export function EmptyState({ title, description, action }: { title: string; desc
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing[12], padding: spacing[24] },
   empty: { alignItems: 'center', gap: spacing[8], paddingVertical: spacing[24], paddingHorizontal: spacing[16] },
   title: { color: color.content.primary, textAlign: 'center' },
   message: { color: color.content.secondary, textAlign: 'center' },
-});
+}));

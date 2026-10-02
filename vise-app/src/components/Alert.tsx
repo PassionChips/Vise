@@ -1,15 +1,16 @@
 import { CircleAlert, Info, type LucideIcon, TriangleAlert } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
-import { color, radius, spacing, type } from '../theme/tokens';
+import { color, radius, spacing, themed, type } from '../theme/tokens';
 
 type AlertType = 'error' | 'warning' | 'info';
 
-const VARIANTS: Record<AlertType, { icon: LucideIcon; bg: string; accent: string; titleColor: string }> = {
+// A function, not a constant: colours must be read at render time so the theme can change.
+const variants = (): Record<AlertType, { icon: LucideIcon; bg: string; accent: string; titleColor: string }> => ({
   error: { icon: CircleAlert, bg: color.feedback.errorSubtle, accent: color.feedback.error, titleColor: color.feedback.error },
   warning: { icon: TriangleAlert, bg: color.feedback.warningSubtle, accent: color.feedback.warning, titleColor: color.feedback.warning },
   info: { icon: Info, bg: color.feedback.infoSubtle, accent: color.finance.predicted, titleColor: color.content.primary },
-};
+});
 
 interface Props {
   type: AlertType;
@@ -19,7 +20,7 @@ interface Props {
 
 /** Feedback/Alert: icon + title + text. Error/warning are announced. */
 export function Alert({ type: kind, title, description }: Props) {
-  const { icon: Icon, bg, accent, titleColor } = VARIANTS[kind];
+  const { icon: Icon, bg, accent, titleColor } = variants()[kind];
   return (
     <View
       accessibilityRole={kind === 'info' ? undefined : 'alert'}
@@ -34,7 +35,7 @@ export function Alert({ type: kind, title, description }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   alert: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -43,4 +44,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   text: { flex: 1, gap: 2 },
-});
+}));

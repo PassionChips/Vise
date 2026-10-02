@@ -11,6 +11,8 @@ diesel::table! {
         onboarding_completed_at -> Nullable<BigInt>,
         created_at -> BigInt,
         updated_at -> BigInt,
+        theme -> Text,
+        avatar -> Nullable<Text>,
     }
 }
 

@@ -8,7 +8,10 @@ import {
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SystemUI from 'expo-system-ui';
+import { useEffect } from 'react';
 
+import { ThemeProvider, useTheme } from '../src/theme/ThemeProvider';
 import { color } from '../src/theme/tokens';
 
 export default function RootLayout() {
@@ -27,8 +30,24 @@ export default function RootLayout() {
   }
 
   return (
+    <ThemeProvider>
+      <ThemedStack />
+    </ThemeProvider>
+  );
+}
+
+/** The navigator, status bar and window background follow the current theme. */
+function ThemedStack() {
+  const { scheme } = useTheme();
+
+  useEffect(() => {
+    // Colours the window behind the screens (visible during transitions and the keyboard).
+    SystemUI.setBackgroundColorAsync(color.surface.background).catch(() => {});
+  }, [scheme]);
+
+  return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.surface.background } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="onboarding" options={{ gestureEnabled: false, animation: 'fade' }} />

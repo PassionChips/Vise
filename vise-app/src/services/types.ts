@@ -177,7 +177,13 @@ export interface Settings {
   income_source_name: string | null;
   warning_threshold_percent: number;
   onboarding_completed: boolean;
+  /** Appearance: follow the device, or force light / dark. */
+  theme: ThemeSetting;
+  /** Preset avatar id (see src/data/avatars.ts), or null to show initials. */
+  avatar: string | null;
 }
+
+export type ThemeSetting = 'system' | 'light' | 'dark';
 
 /** Fields left out are unchanged; blank display_name / monthly_income clears them. */
 export interface UpdateSettingsInput {
@@ -186,6 +192,9 @@ export interface UpdateSettingsInput {
   monthly_income?: string;
   income_source_id?: number;
   warning_threshold_percent?: number;
+  theme?: ThemeSetting;
+  /** A preset avatar id; '' goes back to initials. */
+  avatar?: string;
 }
 
 export interface OnboardingCategory {
@@ -208,6 +217,31 @@ export interface OnboardingInput {
     date: string;
     category?: OnboardingCategory | null;
   } | null;
+}
+
+// ----- Data management -----
+
+/** What "Delete all my data" would erase. */
+export interface DataOverview {
+  transactions: number;
+  categories: number;
+  income_sources: number;
+  /** Monthly budgets plus per-category limits. */
+  budgets: number;
+}
+
+export interface CsvExport {
+  filename: string;
+  csv: string;
+  transaction_count: number;
+  budget_count: number;
+}
+
+export interface DeletedCounts {
+  transactions: number;
+  categories: number;
+  income_sources: number;
+  budgets: number;
 }
 
 // ----- Errors -----

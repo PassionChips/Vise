@@ -4,20 +4,10 @@
 
 import { Calendar, ChevronDown, CircleAlert, type LucideIcon } from 'lucide-react-native';
 import { useState, type ReactNode } from 'react';
-import {
-  FlatList,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { FlatList, Modal, Pressable, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { color, radius, spacing, type } from '../theme/tokens';
+import { color, radius, spacing, themed, type } from '../theme/tokens';
 
 interface FieldFrameProps {
   label: string;
@@ -253,7 +243,7 @@ export function DateField({ label, displayValue, onPress, error }: DateFieldProp
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   wrapper: {
     alignSelf: 'stretch',
     gap: 6,
@@ -314,7 +304,7 @@ const styles = StyleSheet.create({
   },
   scrim: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 18, 0.4)',
+    backgroundColor: color.overlay.scrim,
   },
   sheet: {
     maxHeight: '70%',
@@ -340,4 +330,4 @@ const styles = StyleSheet.create({
   sheetRowActive: {
     backgroundColor: color.brand.subtle,
   },
-});
+}));

@@ -5,9 +5,11 @@ import { QueryState } from '../../src/components/QueryState';
 import { useCoreQuery } from '../../src/data/store';
 import { getSettings } from '../../src/services/viseCore';
 import { color } from '../../src/theme/tokens';
+import { useTheme } from '../../src/theme/ThemeProvider';
 
 /** Waits for the saved settings; onboarding that never completed sends the user back to it. */
 export default function TabsLayout() {
+  useTheme();
   const settings = useCoreQuery(getSettings);
 
   return (

@@ -2,7 +2,7 @@
 // Screens are presentational: state and navigation live in OnboardingFlow.
 
 import { ArrowDownLeft, CircleCheck, Euro, Lock, ReceiptText } from 'lucide-react-native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { PrimaryButton } from '../../components/Buttons';
 import { SegmentedControl } from '../../components/Controls';
@@ -10,7 +10,7 @@ import { CategoryBudgetCard } from '../../components/FinanceCards';
 import { AmountInput, DateField, SelectField, TextField } from '../../components/Inputs';
 import { RadioGroup } from '../../components/RadioGroup';
 import { SettingsGroup, SettingsRow } from '../../components/Settings';
-import { color, radius, spacing, type } from '../../theme/tokens';
+import { color, radius, spacing, themed, type } from '../../theme/tokens';
 import {
   categoryByName,
   currencies,
@@ -342,7 +342,7 @@ export function AllSetScreen({ userName, answers, onFinish }: AllSetScreenProps)
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   flex: {
     flex: 1,
   },
@@ -417,4 +417,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));

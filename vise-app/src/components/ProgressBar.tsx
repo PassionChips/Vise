@@ -1,6 +1,6 @@
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
-import { color, radius } from '../theme/tokens';
+import { color, radius, themed } from '../theme/tokens';
 
 interface Props {
   /** Fraction filled; values above 1 are capped visually (the real % is shown as text). */
@@ -26,7 +26,7 @@ export function ProgressBar({ value, fillColor = color.finance.underBudget, heig
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   track: {
     width: '100%',
     backgroundColor: color.surface.variant,
@@ -34,4 +34,4 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   fill: { height: '100%', borderRadius: radius.full },
-});
+}));

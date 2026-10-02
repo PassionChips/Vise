@@ -1,13 +1,16 @@
-// Design tokens from the Figma "VISE — Design System" file (light mode).
+// Design tokens from the Figma "VISE — Design System" file.
 // Names mirror the Figma variables, e.g. `color.content.primary` ↔ Content/Primary.
+// Colours come from the "Semantic" collection, which has a Light and a Dark mode.
 
-import type { TextStyle } from 'react-native';
+import { StyleSheet, type TextStyle } from 'react-native';
 
-export const color = {
-  brand: { primary: '#16833b', subtle: '#f1f9f4' },
+export type ColorScheme = 'light' | 'dark';
+
+const light = {
+  brand: { primary: '#16833b', pressed: '#0b5d2a', subtle: '#f1f9f4' },
   surface: { background: '#f7f9f7', default: '#ffffff', variant: '#f0f3f0' },
   content: { primary: '#17231b', secondary: '#6b756e', disabled: '#a5b0a8', onBrand: '#ffffff' },
-  border: { default: '#e3e9e4' },
+  border: { default: '#e3e9e4', focus: '#17231b' },
   feedback: {
     success: '#16833b',
     successSubtle: '#f1f9f4',
@@ -15,6 +18,7 @@ export const color = {
     warningSubtle: '#fef3e2',
     error: '#c2342b',
     errorSubtle: '#fdecea',
+    info: '#159a91',
     infoSubtle: '#e3f5f3',
   },
   finance: {
@@ -24,7 +28,90 @@ export const color = {
     overBudget: '#c2342b',
     predicted: '#159a91',
   },
-} as const;
+  overlay: { scrim: 'rgba(16, 23, 19, 0.6)' },
+};
+
+export type Palette = typeof light;
+
+const dark: Palette = {
+  brand: { primary: '#3dba6a', pressed: '#16833b', subtle: '#12301e' },
+  surface: { background: '#101713', default: '#19221c', variant: '#222d25' },
+  content: { primary: '#f2f6f2', secondary: '#a5b0a8', disabled: '#6b756e', onBrand: '#101713' },
+  border: { default: '#303c33', focus: '#f2f6f2' },
+  feedback: {
+    success: '#3dba6a',
+    successSubtle: '#12301e',
+    warning: '#f5b44a',
+    warningSubtle: '#3a2a12',
+    error: '#f07167',
+    errorSubtle: '#3a1a18',
+    info: '#3cc4ba',
+    infoSubtle: '#10302d',
+  },
+  finance: {
+    remaining: '#3dba6a',
+    spending: '#f2f6f2',
+    underBudget: '#3dba6a',
+    overBudget: '#f07167',
+    predicted: '#3cc4ba',
+  },
+  overlay: { scrim: 'rgba(0, 0, 0, 0.6)' },
+};
+
+export const palettes: Record<ColorScheme, Palette> = { light, dark };
+
+function copy(palette: Palette): Palette {
+  return JSON.parse(JSON.stringify(palette)) as Palette;
+}
+
+/**
+ * The active palette. Its values are swapped in place by `applyColorScheme`,
+ * so code that reads `color.x.y` while rendering always gets the current
+ * theme. Never cache a value from it at module level; use `themed` instead.
+ */
+export const color: Palette = copy(light);
+
+let activeScheme: ColorScheme = 'light';
+let paletteVersion = 0;
+
+export const currentColorScheme = () => activeScheme;
+
+/** Switches every token to `scheme`. Cheap and idempotent. */
+export function applyColorScheme(scheme: ColorScheme): boolean {
+  if (scheme === activeScheme) return false;
+  const next = palettes[scheme];
+  for (const group of Object.keys(next) as (keyof Palette)[]) {
+    Object.assign(color[group], next[group]);
+  }
+  activeScheme = scheme;
+  paletteVersion += 1;
+  return true;
+}
+
+/**
+ * `StyleSheet.create` for styles that use colour tokens. The factory runs
+ * again after the theme changes, so a component reading `styles.x` while
+ * rendering always gets the current palette.
+ */
+export function themed<T extends StyleSheet.NamedStyles<T> | StyleSheet.NamedStyles<any>>(
+  factory: () => T & StyleSheet.NamedStyles<any>,
+): T {
+  let cached: T | undefined;
+  let builtFor = -1;
+  const current = (): T => {
+    if (!cached || builtFor !== paletteVersion) {
+      cached = StyleSheet.create(factory());
+      builtFor = paletteVersion;
+    }
+    return cached;
+  };
+  return new Proxy({} as T, {
+    get: (_target, key) => current()[key as keyof T],
+    has: (_target, key) => key in (current() as object),
+    ownKeys: () => Reflect.ownKeys(current() as object),
+    getOwnPropertyDescriptor: (_target, key) => Reflect.getOwnPropertyDescriptor(current() as object, key),
+  });
+}
 
 export const spacing = { 4: 4, 8: 8, 12: 12, 16: 16, 20: 20, 24: 24 } as const;
 
