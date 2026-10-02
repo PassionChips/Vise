@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react-native';
-import { Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
 
 import { color, radius, spacing, type } from '../theme/tokens';
 
@@ -38,6 +38,42 @@ interface TextButtonProps {
   onPress?: () => void;
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
+}
+
+interface PrimaryButtonProps {
+  label: string;
+  size?: 'large' | 'small';
+  onPress?: () => void;
+  disabled?: boolean;
+  /** Spinner replaces the leading icon; announced as "Saving". */
+  loading?: boolean;
+  style?: StyleProp<ViewStyle>;
+}
+
+/** Button/Primary: Brand/Primary fill, full width by default. */
+export function PrimaryButton({ label, size = 'large', onPress, disabled, loading, style }: PrimaryButtonProps) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={loading ? 'Saving' : label}
+      accessibilityState={{ disabled: !!disabled, busy: !!loading }}
+      disabled={disabled || loading}
+      onPress={onPress}
+      // Small is 40px tall; keep a 44px touch target.
+      hitSlop={size === 'small' ? { top: 2, bottom: 2 } : undefined}
+      style={({ pressed }) => [
+        styles.button,
+        size === 'large' ? styles.large : styles.small,
+        styles.primary,
+        pressed && styles.filledPressed,
+        disabled && styles.primaryDisabled,
+        style,
+      ]}
+    >
+      {loading && <ActivityIndicator size="small" color={color.content.onBrand} />}
+      <Text style={[type.button, { color: color.content.onBrand }]}>{label}</Text>
+    </Pressable>
+  );
 }
 
 /** Button/Secondary: Surface/Variant fill, ink label. */
@@ -102,6 +138,8 @@ const styles = StyleSheet.create({
   },
   large: { height: 48, paddingHorizontal: spacing[20], borderRadius: radius.md },
   small: { height: 40, paddingHorizontal: spacing[16], borderRadius: radius.sm },
+  primary: { alignSelf: 'stretch', backgroundColor: color.brand.primary },
+  primaryDisabled: { backgroundColor: color.content.disabled },
   secondary: { backgroundColor: color.surface.variant },
   secondaryPressed: { backgroundColor: color.border.default },
   tertiaryPressed: { backgroundColor: color.brand.subtle },

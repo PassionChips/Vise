@@ -104,20 +104,24 @@ interface CategoryBudgetCardProps {
   spentCents: number;
   limitCents: number;
   warningThreshold: number;
+  /** Defaults to EUR. */
+  currency?: string;
   onPress?: () => void;
 }
 
-export function CategoryBudgetCard({ name, icon, spentCents, limitCents, warningThreshold, onPress }: CategoryBudgetCardProps) {
+export function CategoryBudgetCard({ name, icon, spentCents, limitCents, warningThreshold, currency, onPress }: CategoryBudgetCardProps) {
+  const money = (cents: number) => formatMoney(cents, { currency });
   const percentUsed = percentOf(spentCents, limitCents);
   const health = budgetHealth(percentUsed, warningThreshold);
   const remaining = limitCents - spentCents;
-  const footer = remaining < 0 ? `${formatMoney(-remaining)} over` : `${formatMoney(remaining)} left`;
+  const footer = remaining < 0 ? `${money(-remaining)} over` : `${money(remaining)} left`;
   const statusWords = { healthy: 'on track', approaching: 'near limit', over: 'over budget' }[health];
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${name}, ${formatMoney(spentCents)} of ${formatMoney(limitCents)}, ${percentUsed} percent used, ${statusWords}`}
+      accessibilityLabel={`${name}, ${money(spentCents)} of ${money(limitCents)}, ${percentUsed} percent used, ${statusWords}`}
+      disabled={!onPress}
       onPress={onPress}
     >
       <Card style={styles.gap12}>
@@ -131,11 +135,11 @@ export function CategoryBudgetCard({ name, icon, spentCents, limitCents, warning
               <BudgetStatus status={health} />
             </View>
             <Text style={[type.numericSmall, styles.secondary]}>
-              {formatMoney(spentCents)} of {formatMoney(limitCents)}
+              {money(spentCents)} of {money(limitCents)}
             </Text>
           </View>
         </View>
-        <ProgressBar value={spentCents / limitCents} fillColor={healthColor(health)} />
+        <ProgressBar value={limitCents > 0 ? spentCents / limitCents : 0} fillColor={healthColor(health)} />
         <View style={styles.spaceBetween}>
           <Text style={[type.numericSmall, { color: healthColor(health) }]}>{footer}</Text>
           <Text style={[type.numericSmall, styles.secondary]}>{percentUsed}% used</Text>

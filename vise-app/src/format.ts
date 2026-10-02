@@ -3,7 +3,7 @@
 
 const MINUS = '−'; // typographic minus, as used in the design
 
-const SYMBOLS: Record<string, string> = { EUR: '€', GBP: '£', USD: '$' };
+const SYMBOLS: Record<string, string> = { EUR: '€', GBP: '£', USD: '$', INR: '₹' };
 
 export interface MoneyOptions {
   currency?: string;

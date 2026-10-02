@@ -41,6 +41,7 @@ export const fontFamily = {
 
 // Text styles, named after the Figma text styles.
 export const type = {
+  displayLarge: { fontFamily: fontFamily.uiBold, fontSize: 40, lineHeight: 48, letterSpacing: -0.4 },
   headingLarge: { fontFamily: fontFamily.uiBold, fontSize: 24, lineHeight: 32, letterSpacing: -0.12 },
   headingMedium: { fontFamily: fontFamily.uiSemiBold, fontSize: 18, lineHeight: 26 },
   bodyLarge: { fontFamily: fontFamily.uiRegular, fontSize: 16, lineHeight: 24 },
@@ -53,11 +54,7 @@ export const type = {
   numericSmall: { fontFamily: fontFamily.dataMedium, fontSize: 14, lineHeight: 20 },
 } satisfies Record<string, TextStyle>;
 
-// Elevation/SM: 0 1 3 rgba(15,23,18,0.06)
+// Elevation/SM. boxShadow works on iOS, Android and web; the shadow* props are deprecated on web.
 export const elevationSm = {
-  shadowColor: '#0f1712',
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.06,
-  shadowRadius: 1.5,
-  elevation: 1,
+  boxShadow: '0px 1px 3px rgba(15, 23, 18, 0.06)',
 } as const;

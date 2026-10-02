@@ -30,10 +30,12 @@ no account and no cloud sync.
 | JSON API for the frontend (`api::dispatch`) | ✅ Done |
 | TypeScript client for the API (`src/services/viseCore.ts`) | ✅ Done (type-checked) |
 | Native bridge (Expo module: Kotlin/Swift → Rust) | ⏳ Not started (needs Android SDK / Xcode) |
+| Onboarding (Figma "1 · Onboarding") | ✅ Built; saves through `viseCore` once the bridge exists |
 | Main app screens (Figma "2 · Main app (tabs)") | ✅ Built with demo data; not yet wired to `viseCore` |
 
-The tab screens (Dashboard, Transactions, Budgets, Reports, Settings) and Goals render
-from `src/data/demo.ts` until the native bridge exists.
+The app opens on onboarding, then the tab screens (Dashboard, Transactions, Budgets,
+Reports, Settings) and Goals, which render from `src/data/demo.ts` until the native
+bridge exists. Onboarding completion is not persisted yet, so it shows on every launch.
 
 ---
 
@@ -43,9 +45,10 @@ from `src/data/demo.ts` until the native bridge exists.
 Vise/
 ├── .github/workflows/        CI: Rust tests, clippy + fmt, TypeScript type-check
 └── vise-app/                 Expo app
-    ├── app/                  Expo Router routes: (tabs)/ for the 5 tabs, goals.tsx
+    ├── app/                  Expo Router routes: onboarding.tsx, (tabs)/ for the 5 tabs, goals.tsx
     ├── src/components/       Design-system components (cards, charts, controls, nav)
     ├── src/theme/tokens.ts   Colours, spacing, radii and text styles from Figma
+    ├── src/features/onboarding/  Onboarding steps, flow state and saving via viseCore
     ├── src/data/demo.ts      Demo data shown until the Rust bridge exists
     ├── src/format.ts         Money and date display formatting
     ├── src/services/

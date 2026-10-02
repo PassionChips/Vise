@@ -1,9 +1,14 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 
 import { BottomNavigation } from '../../src/components/BottomNavigation';
+import { hasCompletedOnboarding } from '../../src/features/onboarding/status';
 import { color } from '../../src/theme/tokens';
 
 export default function TabsLayout() {
+  if (!hasCompletedOnboarding()) {
+    return <Redirect href="/onboarding" />;
+  }
+
   return (
     <Tabs
       tabBar={(props) => <BottomNavigation {...props} />}

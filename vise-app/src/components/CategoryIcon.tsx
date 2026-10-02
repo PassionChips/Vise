@@ -3,9 +3,12 @@ import {
   Bus,
   CircleDot,
   Film,
+  GraduationCap,
+  HeartPulse,
   House,
   type LucideIcon,
   PiggyBank,
+  Plane,
   Repeat,
   ShoppingBag,
   ShoppingCart,
@@ -21,8 +24,11 @@ const ICONS = {
   bus: Bus,
   'circle-dot': CircleDot,
   film: Film,
+  'graduation-cap': GraduationCap,
+  'heart-pulse': HeartPulse,
   house: House,
   'piggy-bank': PiggyBank,
+  plane: Plane,
   repeat: Repeat,
   'shopping-bag': ShoppingBag,
   'shopping-cart': ShoppingCart,
@@ -38,7 +44,12 @@ interface Props {
   color?: string;
 }
 
+/** Icon component for a stored icon name; falls back to a dot. */
+export function categoryIcon(name: string | null): LucideIcon {
+  return (name && ICONS[name as CategoryIconName]) || CircleDot;
+}
+
 export function CategoryIcon({ name, size = 20, color: stroke = color.content.primary }: Props) {
-  const Icon = (name && ICONS[name as CategoryIconName]) || CircleDot;
+  const Icon = categoryIcon(name);
   return <Icon size={size} color={stroke} strokeWidth={2} />;
 }
