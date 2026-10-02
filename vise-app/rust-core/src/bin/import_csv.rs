@@ -4,7 +4,7 @@ use std::fs::File;
 use std::path::Path;
 use std::println;
 
-pub fn main(){
+pub fn main() {
     let csv_path = Path::new("data/transactions.csv");
     let db_path = Path::new("vise.db");
 
@@ -14,23 +14,24 @@ pub fn main(){
 
     println!("Inserted: {} transactions", result.transaction_record.len());
 
-    if result.error.is_empty(){
+    if result.error.is_empty() {
         println!("No errors.");
-    }else{
+    } else {
         println!("Errors ({}):", result.error.len());
-        for (row, msg) in result.error{
-            println!("row {} : {}", row,msg)
+        for (row, msg) in result.error {
+            println!("row {} : {}", row, msg)
         }
     }
 }
 
-
 #[cfg(test)]
-mod tests{
+mod tests {
     use std::assert_eq;
 
-use super::*;
-    use rust_core::{db::connection::establish_connection_test, repository::transaction_repository::get_all};
+    use super::*;
+    use rust_core::{
+        db::connection::establish_connection_test, repository::transaction_repository::get_all,
+    };
     const SAMPLE_CSV: &str = "\
 date,description,amount,currency,transaction_type,source_type,status,\
 merchant_name,raw_description,revolut_category,external_id,exclude_from_totals,completed_at
@@ -39,17 +40,15 @@ merchant_name,raw_description,revolut_category,external_id,exclude_from_totals,c
 2024-01-20,Transfer,200.00,EUR,transfer,manual,completed,,SAVINGS,,RVLT-001,true,2024-01-20
 ";
     #[test]
-    fn parses_and_inserts_all_reports(){
+    fn parses_and_inserts_all_reports() {
         let mut conn = establish_connection_test().expect("unable to connect to datatbase");
-        let result = import_from_reader(SAMPLE_CSV.as_bytes(), &mut conn).expect("cannot push data");
+        let result =
+            import_from_reader(SAMPLE_CSV.as_bytes(), &mut conn).expect("cannot push data");
 
-        assert_eq!(result.transaction_record.len(),3);
+        assert_eq!(result.transaction_record.len(), 3);
         assert!(result.error.is_empty());
 
         let all = get_all(&mut conn).expect("unable to get the data");
-        assert_eq!(all.len(),3);
-
+        assert_eq!(all.len(), 3);
     }
 }
-
-

@@ -36,6 +36,20 @@ pub fn get_id(
         .optional()
 }
 
+/// Looks up the budget for a "YYYY-MM" month in one currency.
+pub fn get_by_month(
+    connection: &mut SqliteConnection,
+    month: &str,
+    currency: &str,
+) -> QueryResult<Option<BudgetMonth>> {
+    budget_months::table
+        .filter(budget_months::month.eq(month))
+        .filter(budget_months::currency.eq(currency))
+        .select(BudgetMonth::as_select())
+        .first(connection)
+        .optional()
+}
+
 pub fn update(
     connection: &mut SqliteConnection,
     source_id: i32,
@@ -197,6 +211,22 @@ mod tests {
         let result = update(&mut connection, 99999, &changes).unwrap();
 
         assert!(result.is_none());
+    }
+
+    #[test]
+    pub fn budget_month_get_by_month_test() {
+        let mut connection = establish_connection_test().unwrap();
+        insert(
+            &mut connection,
+            &sample_budget_month("2026-09".to_string(), "EUR".to_string(), None, None),
+        )
+        .unwrap();
+
+        let found = get_by_month(&mut connection, "2026-09", "EUR").unwrap();
+        let other_currency = get_by_month(&mut connection, "2026-09", "USD").unwrap();
+
+        assert_eq!(found.unwrap().month, "2026-09");
+        assert!(other_currency.is_none());
     }
 
     #[test]
