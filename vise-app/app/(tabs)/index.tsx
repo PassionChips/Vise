@@ -1,12 +1,14 @@
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import {
   ArrowDownLeft,
+  ArrowUpRight,
   Bell,
   Calendar,
   ChartNoAxesCombined,
   ChevronDown,
   ChevronRight,
   Plus,
+  Target,
   Wallet,
 } from 'lucide-react-native';
 import { useState } from 'react';
@@ -25,8 +27,9 @@ import {
   TransactionRow,
 } from '../../src/components/FinanceCards';
 import { Screen, SectionHeader } from '../../src/components/Layout';
+import { BottomSheet, SheetAction } from '../../src/components/Overlays';
+import { useBudgets } from '../../src/data/budgetStore';
 import {
-  categoryBudgets,
   DEMO_TODAY,
   dashboardBudgetIds,
   month,
@@ -51,9 +54,16 @@ function greeting(hour: number): string {
 
 export default function DashboardScreen() {
   const [range, setRange] = useState<(typeof RANGES)[number]>('Month');
+  const [addOpen, setAddOpen] = useState(false);
 
+  const go = (href: Href) => {
+    setAddOpen(false);
+    router.push(href);
+  };
+
+  const { budgets: allBudgets } = useBudgets();
   const budgets = dashboardBudgetIds
-    .map((id) => categoryBudgets.find((c) => c.category_id === id))
+    .map((id) => allBudgets.find((c) => c.category_id === id))
     .filter((c) => c != null);
   const recent = recentTransactionIds
     .map((id) => transactions.find((t) => t.id === id))
@@ -68,7 +78,7 @@ export default function DashboardScreen() {
           <Text numberOfLines={1} style={[type.headingLarge, styles.primary]}>{user.firstName}</Text>
         </View>
         <IconButton icon={Bell} accessibilityLabel="Notifications" />
-        <IconButton icon={Plus} accessibilityLabel="Add transaction" filled />
+        <IconButton icon={Plus} accessibilityLabel="Quick add" filled onPress={() => setAddOpen(true)} />
       </View>
 
       <View style={styles.monthSelector}>
@@ -103,9 +113,9 @@ export default function DashboardScreen() {
       </View>
 
       <View style={styles.quickActions}>
-        <QuickAction label="Add income" icon={ArrowDownLeft} iconColor={color.brand.primary} />
-        <QuickAction label="Add expense" icon={Plus} />
-        <QuickAction label="New budget" icon={Wallet} onPress={() => router.navigate('/budgets')} />
+        <QuickAction label="Add income" icon={ArrowDownLeft} iconColor={color.brand.primary} onPress={() => go({ pathname: '/add-transaction', params: { type: 'income' } })} />
+        <QuickAction label="Add expense" icon={Plus} onPress={() => go('/add-transaction')} />
+        <QuickAction label="New budget" icon={Wallet} onPress={() => router.push('/budget-form')} />
         <QuickAction label="Reports" icon={ChartNoAxesCombined} onPress={() => router.navigate('/reports')} />
       </View>
 
@@ -152,6 +162,19 @@ export default function DashboardScreen() {
           ))}
         </TransactionList>
       </View>
+      <BottomSheet visible={addOpen} title="Add" onClose={() => setAddOpen(false)}>
+        <SheetAction icon={ArrowUpRight} title="Expense" subtitle="Something you paid for" onPress={() => go('/add-transaction')} />
+        <SheetAction
+          icon={ArrowDownLeft}
+          tint={color.brand.primary}
+          tileBackground={color.brand.subtle}
+          title="Income"
+          subtitle="Salary, refunds, side work"
+          onPress={() => go({ pathname: '/add-transaction', params: { type: 'income' } })}
+        />
+        <SheetAction icon={Wallet} tint={color.brand.primary} tileBackground={color.brand.subtle} title="Budget" subtitle="Set a monthly limit for a category" onPress={() => go('/budget-form')} />
+        <SheetAction icon={Target} tint={color.finance.predicted} tileBackground={color.feedback.infoSubtle} title="Savings goal" subtitle="Track progress toward a target" onPress={() => go('/goals')} />
+      </BottomSheet>
     </Screen>
   );
 }

@@ -33,6 +33,8 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="onboarding" options={{ gestureEnabled: false, animation: 'fade' }} />
         <Stack.Screen name="goals" />
+        <Stack.Screen name="add-transaction" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="budget-form" options={{ presentation: 'modal' }} />
       </Stack>
     </>
   );
