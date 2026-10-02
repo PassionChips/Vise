@@ -4,20 +4,21 @@
 import { ArrowDownLeft, CircleCheck, Euro, Lock, ReceiptText } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { PrimaryButton, TertiaryButton } from '../../components/Button';
-import { CategoryBudgetCard } from '../../components/CategoryBudgetCard';
+import { PrimaryButton, TertiaryButton } from '../../components/Buttons';
+import { SegmentedControl } from '../../components/Controls';
+import { CategoryBudgetCard } from '../../components/FinanceCards';
 import { AmountInput, DateField, SelectField, TextField } from '../../components/Inputs';
 import { RadioGroup } from '../../components/RadioGroup';
-import { SegmentedControl } from '../../components/SegmentedControl';
-import { SettingsList, SettingsRow } from '../../components/SettingsRow';
-import { colors, radius, spacing, typography } from '../../theme';
+import { SettingsGroup, SettingsRow } from '../../components/Settings';
+import { color, radius, spacing, type } from '../../theme/tokens';
 import {
   categoryByName,
   currencies,
   currencyByCode,
   displayDate,
-  formatAmount,
+  formatTyped,
   starterCategories,
+  typedAmountCents,
   type CurrencyCode,
 } from './data';
 import { Heading, OnboardingScreen, type StepperProps } from './OnboardingScreen';
@@ -33,23 +34,23 @@ export function WelcomeScreen({ onStart, onExploreDemo }: { onStart: () => void;
       actions={
         <>
           <PrimaryButton label="Get started" onPress={onStart} />
-          <TertiaryButton label="Explore with demo data" onPress={onExploreDemo} />
+          <TertiaryButton label="Explore with demo data" size="large" onPress={onExploreDemo} />
         </>
       }
     >
       <View style={styles.flex} />
       <View style={styles.mark} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <Text style={[typography.headingLarge, styles.markGlyph]}>V</Text>
+        <Text style={[type.headingLarge, styles.markGlyph]}>V</Text>
       </View>
-      <Text accessibilityRole="header" style={[typography.displayLarge, styles.primaryText]}>
+      <Text accessibilityRole="header" style={[type.displayLarge, styles.primaryText]}>
         Know where your money goes
       </Text>
-      <Text style={[typography.bodyLarge, styles.secondaryText]}>
+      <Text style={[type.bodyLarge, styles.secondaryText]}>
         Track spending, set budgets for what matters, and see where the month is heading — in a minute a day.
       </Text>
       <View style={styles.privacy}>
-        <Lock size={16} color={colors.contentSecondary} />
-        <Text style={[typography.bodySmall, styles.secondaryText, styles.flex]}>
+        <Lock size={16} color={color.content.secondary} />
+        <Text style={[type.bodySmall, styles.secondaryText, styles.flex]}>
           No bank login needed. Your data stays on this device.
         </Text>
       </View>
@@ -147,10 +148,10 @@ export function FirstCategoryScreen({ stepper, value, onChange, onContinue }: Ca
                   onPress={() => onChange(category.name)}
                   style={[styles.tile, selected && styles.tileSelected]}
                 >
-                  <Icon size={24} color={selected ? colors.brandPrimary : colors.contentPrimary} />
+                  <Icon size={24} color={selected ? color.brand.primary : color.content.primary} />
                   <Text
                     numberOfLines={1}
-                    style={[typography.bodySmall, { color: selected ? colors.brandPrimary : colors.contentPrimary }]}
+                    style={[type.bodySmall, { color: selected ? color.brand.primary : color.content.primary }]}
                   >
                     {category.name}
                   </Text>
@@ -166,6 +167,9 @@ export function FirstCategoryScreen({ stepper, value, onChange, onContinue }: Ca
 
 // ----- 1.5 Spending limit -----
 
+/** Default of Settings › Budget warning threshold. */
+const WARNING_THRESHOLD = 80;
+
 interface LimitScreenProps {
   stepper: StepperProps;
   currency: CurrencyCode;
@@ -177,7 +181,6 @@ interface LimitScreenProps {
 }
 
 export function SpendingLimitScreen({ stepper, currency, category, value, onChange, onContinue, errors }: LimitScreenProps) {
-  const limit = formatAmount(value, currency);
   return (
     <OnboardingScreen
       gap={spacing[20]}
@@ -197,15 +200,14 @@ export function SpendingLimitScreen({ stepper, currency, category, value, onChan
         helperText="You can change this any time from Budgets"
         error={errors.limit}
       />
-      <Text style={[typography.label, styles.secondaryText]}>PREVIEW</Text>
+      <Text style={[type.label, styles.secondaryText]}>PREVIEW</Text>
       <CategoryBudgetCard
         name={category}
-        icon={categoryByName(category).icon}
-        spent={formatAmount('0', currency)}
-        limit={limit}
-        remaining={limit}
-        percentUsed={0}
-        status="healthy"
+        icon={categoryByName(category).iconName}
+        currency={currency}
+        spentCents={0}
+        limitCents={typedAmountCents(value)}
+        warningThreshold={WARNING_THRESHOLD}
       />
     </OnboardingScreen>
   );
@@ -215,10 +217,8 @@ export function SpendingLimitScreen({ stepper, currency, category, value, onChan
 
 type Transaction = NonNullable<OnboardingAnswers['transaction']>;
 
-const typeOptions = [
-  { value: 'expense', label: 'Expense' },
-  { value: 'income', label: 'Income' },
-] as const;
+const typeLabels = { expense: 'Expense', income: 'Income' } as const;
+const typeOptions = [typeLabels.expense, typeLabels.income] as const;
 
 const categoryOptions = starterCategories.map((c) => ({ value: c.name, label: c.name, icon: c.icon }));
 
@@ -254,7 +254,7 @@ export function FirstTransactionScreen({
       actions={
         <>
           {errors.form && (
-            <Text accessibilityLiveRegion="polite" style={[typography.bodySmall, styles.errorText]}>
+            <Text accessibilityLiveRegion="polite" style={[type.bodySmall, styles.errorText]}>
               {errors.form}
             </Text>
           )}
@@ -263,7 +263,13 @@ export function FirstTransactionScreen({
       }
     >
       <Heading title="Add your first transaction" description="Something you bought today works well." />
-      <SegmentedControl options={typeOptions} value={value.type} onChange={(type) => update({ type })} />
+      <SegmentedControl
+        stretch
+        accessibilityLabel="Transaction type"
+        options={typeOptions}
+        value={typeLabels[value.type]}
+        onChange={(label) => update({ type: label === typeLabels.income ? 'income' : 'expense' })}
+      />
       <AmountInput
         label="Amount"
         currency={currency}
@@ -310,30 +316,33 @@ export function AllSetScreen({ userName, answers, onFinish }: AllSetScreenProps)
     <OnboardingScreen gap={spacing[20]} actions={<PrimaryButton label="Go to dashboard" onPress={onFinish} />}>
       <View style={styles.allSetSpacer} />
       <View style={styles.illustration}>
-        <CircleCheck size={32} color={colors.feedbackSuccess} />
+        <CircleCheck size={32} color={color.feedback.success} />
       </View>
       <Heading
         title={userName ? `You’re all set, ${userName}` : 'You’re all set'}
         description="Here’s what VISE knows so far. Everything can be changed in Settings."
       />
-      <SettingsList>
-        <SettingsRow icon={Euro} label="Currency" value={`${currency} (${currencyByCode(currency).symbol})`} />
+      <SettingsGroup>
+        <SettingsRow type="value" icon={Euro} label="Currency" value={`${currency} (${currencyByCode(currency).symbol})`} />
         <SettingsRow
+          type="value"
           icon={ArrowDownLeft}
           label="Monthly income"
-          value={answers.monthlyIncome ? formatAmount(answers.monthlyIncome, currency) : 'Not set'}
+          value={answers.monthlyIncome ? formatTyped(answers.monthlyIncome, currency) : 'Not set'}
         />
         <SettingsRow
+          type="value"
           icon={category.icon}
           label={`${category.name} limit`}
-          value={answers.monthlyLimit ? `${formatAmount(answers.monthlyLimit, currency)} / month` : 'Not set'}
+          value={answers.monthlyLimit ? `${formatTyped(answers.monthlyLimit, currency)} / month` : 'Not set'}
         />
         <SettingsRow
+          type="value"
           icon={ReceiptText}
           label="Transactions"
           value={answers.transaction ? '1 added' : 'None yet'}
         />
-      </SettingsList>
+      </SettingsGroup>
     </OnboardingScreen>
   );
 }
@@ -343,25 +352,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   primaryText: {
-    color: colors.contentPrimary,
+    color: color.content.primary,
   },
   secondaryText: {
-    color: colors.contentSecondary,
+    color: color.content.secondary,
   },
   errorText: {
-    color: colors.feedbackError,
+    color: color.feedback.error,
     textAlign: 'center',
   },
   mark: {
     width: 64,
     height: 64,
     borderRadius: radius.lg,
-    backgroundColor: colors.brandPrimary,
+    backgroundColor: color.brand.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   markGlyph: {
-    color: colors.contentOnBrand,
+    color: color.content.onBrand,
   },
   privacy: {
     flexDirection: 'row',
@@ -386,16 +395,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[4],
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.cardFill,
+    borderColor: color.border.default,
+    backgroundColor: color.surface.default,
   },
   tileSelected: {
     paddingTop: 14,
     paddingBottom: 12,
     paddingHorizontal: spacing[4] - 1,
     borderWidth: 2,
-    borderColor: colors.brandPrimary,
-    backgroundColor: colors.brandSubtle,
+    borderColor: color.brand.primary,
+    backgroundColor: color.brand.subtle,
   },
   // Same box as a tile so every column gets the same width.
   tileEmpty: {
@@ -409,7 +418,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: radius.full,
-    backgroundColor: colors.feedbackSuccessSubtle,
+    backgroundColor: color.feedback.successSubtle,
     alignItems: 'center',
     justifyContent: 'center',
   },

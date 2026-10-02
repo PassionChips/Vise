@@ -2,7 +2,7 @@
 
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius, spacing, typography } from '../theme';
+import { color, radius, spacing, type } from '../theme/tokens';
 
 export interface RadioOption<T extends string> {
   value: T;
@@ -32,7 +32,7 @@ export function RadioGroup<T extends string>({ options, value, onChange, accessi
             <View style={[styles.ring, selected && styles.ringSelected]}>
               {selected && <View style={styles.dot} />}
             </View>
-            <Text style={[typography.bodyLarge, styles.label]}>{option.label}</Text>
+            <Text style={[type.bodyLarge, styles.label]}>{option.label}</Text>
           </Pressable>
         );
       })}
@@ -45,9 +45,9 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     paddingHorizontal: spacing[16],
     paddingVertical: spacing[4],
-    backgroundColor: colors.cardFill,
+    backgroundColor: color.surface.default,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: color.border.default,
     borderRadius: radius.lg,
   },
   row: {
@@ -61,21 +61,21 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: radius.full,
     borderWidth: 2,
-    borderColor: colors.contentSecondary,
-    backgroundColor: colors.surfaceDefault,
+    borderColor: color.content.secondary,
+    backgroundColor: color.surface.default,
     alignItems: 'center',
     justifyContent: 'center',
   },
   ringSelected: {
-    borderColor: colors.brandPrimary,
+    borderColor: color.brand.primary,
   },
   dot: {
     width: 10,
     height: 10,
     borderRadius: radius.full,
-    backgroundColor: colors.brandPrimary,
+    backgroundColor: color.brand.primary,
   },
   label: {
-    color: colors.contentPrimary,
+    color: color.content.primary,
   },
 });

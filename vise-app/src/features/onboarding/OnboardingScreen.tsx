@@ -6,9 +6,9 @@ import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { IconButton, TertiaryButton } from '../../components/Button';
+import { IconButton, TertiaryButton } from '../../components/Buttons';
 import { ProgressBar } from '../../components/ProgressBar';
-import { colors, spacing, typography } from '../../theme';
+import { color, spacing, type } from '../../theme/tokens';
 
 export interface StepperProps {
   step: number;
@@ -24,7 +24,7 @@ function Stepper({ step, total, onBack, onSkip }: StepperProps) {
       <View style={styles.progress}>
         <ProgressBar value={step / total} accessibilityLabel={`Step ${step} of ${total}`} />
       </View>
-      <Text style={[typography.label, styles.stepLabel]}>
+      <Text style={[type.label, styles.stepLabel]}>
         {step} of {total}
       </Text>
       <TertiaryButton label="Skip" size="small" onPress={onSkip} />
@@ -35,10 +35,10 @@ function Stepper({ step, total, onBack, onSkip }: StepperProps) {
 export function Heading({ title, description }: { title: string; description: string }) {
   return (
     <View style={styles.heading}>
-      <Text accessibilityRole="header" style={[typography.headingLarge, styles.title]}>
+      <Text accessibilityRole="header" style={[type.headingLarge, styles.title]}>
         {title}
       </Text>
-      <Text style={[typography.bodyMedium, styles.description]}>{description}</Text>
+      <Text style={[type.bodyMedium, styles.description]}>{description}</Text>
     </View>
   );
 }
@@ -73,7 +73,7 @@ export function OnboardingScreen({ stepper, children, actions, gap = spacing[24]
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.surfaceBackground,
+    backgroundColor: color.surface.background,
   },
   flex: {
     flex: 1,
@@ -93,16 +93,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   stepLabel: {
-    color: colors.contentSecondary,
+    color: color.content.secondary,
   },
   heading: {
     gap: spacing[8],
   },
   title: {
-    color: colors.contentPrimary,
+    color: color.content.primary,
   },
   description: {
-    color: colors.contentSecondary,
+    color: color.content.secondary,
   },
   actions: {
     gap: spacing[8],

@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, radius, spacing, typography } from '../theme';
+import { color, radius, spacing, type } from '../theme/tokens';
 
 interface FieldFrameProps {
   label: string;
@@ -32,16 +32,16 @@ function FieldFrame({ label, helperText, error, focused, fieldStyle, children }:
   const border = error ? styles.fieldError : focused ? styles.fieldFocused : null;
   return (
     <View style={styles.wrapper}>
-      <Text style={[typography.label, styles.label]}>{label}</Text>
+      <Text style={[type.label, styles.label]}>{label}</Text>
       {children([styles.field, fieldStyle, border])}
       {error ? (
         <View style={styles.supporting} accessibilityLiveRegion="polite">
-          <CircleAlert size={16} color={colors.feedbackError} />
-          <Text style={[typography.bodySmall, styles.errorText]}>{error}</Text>
+          <CircleAlert size={16} color={color.feedback.error} />
+          <Text style={[type.bodySmall, styles.errorText]}>{error}</Text>
         </View>
       ) : helperText ? (
         <View style={styles.supporting}>
-          <Text style={[typography.bodySmall, styles.helperText]}>{helperText}</Text>
+          <Text style={[type.bodySmall, styles.helperText]}>{helperText}</Text>
         </View>
       ) : null}
     </View>
@@ -83,7 +83,7 @@ export function AmountInput({
     <FieldFrame label={label} helperText={helperText} error={error} focused={focused} fieldStyle={styles.amountField}>
       {(fieldStyle) => (
         <View style={fieldStyle}>
-          <Text style={[typography.numericMedium, styles.secondary]}>{currencySymbol}</Text>
+          <Text style={[type.numericMedium, styles.secondary]}>{currencySymbol}</Text>
           <TextInput
             accessibilityLabel={label}
             accessibilityHint={helperText}
@@ -94,12 +94,12 @@ export function AmountInput({
             autoFocus={autoFocus}
             keyboardType="decimal-pad"
             placeholder="0.00"
-            placeholderTextColor={colors.contentSecondary}
-            selectionColor={colors.brandPrimary}
-            cursorColor={colors.brandPrimary}
-            style={[typography.numericMedium, styles.input]}
+            placeholderTextColor={color.content.secondary}
+            selectionColor={color.brand.primary}
+            cursorColor={color.brand.primary}
+            style={[type.numericMedium, styles.input]}
           />
-          <Text style={[typography.label, styles.secondary]}>{currency}</Text>
+          <Text style={[type.label, styles.secondary]}>{currency}</Text>
         </View>
       )}
     </FieldFrame>
@@ -130,10 +130,10 @@ export function TextField({ label, value, onChangeText, placeholder, helperText,
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             placeholder={placeholder}
-            placeholderTextColor={colors.contentSecondary}
-            selectionColor={colors.brandPrimary}
-            cursorColor={colors.brandPrimary}
-            style={[typography.bodyLarge, styles.input]}
+            placeholderTextColor={color.content.secondary}
+            selectionColor={color.brand.primary}
+            cursorColor={color.brand.primary}
+            style={[type.bodyLarge, styles.input]}
           />
         </View>
       )}
@@ -181,15 +181,15 @@ export function SelectField<T extends string>({
             onPress={() => setOpen(true)}
             style={fieldStyle}
           >
-            <Text style={[typography.bodyLarge, styles.input, !selected && styles.secondary]}>
+            <Text style={[type.bodyLarge, styles.input, !selected && styles.secondary]}>
               {selected?.label ?? placeholder}
             </Text>
-            <ChevronDown size={20} color={colors.contentPrimary} />
+            <ChevronDown size={20} color={color.content.primary} />
           </Pressable>
           <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
             <Pressable style={styles.scrim} accessibilityLabel="Close" onPress={() => setOpen(false)} />
             <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing[8] }]}>
-              <Text style={[typography.headingMedium, styles.sheetTitle]}>{label}</Text>
+              <Text style={[type.headingMedium, styles.sheetTitle]}>{label}</Text>
               <FlatList
                 data={options}
                 keyExtractor={(option) => option.value}
@@ -206,9 +206,9 @@ export function SelectField<T extends string>({
                       }}
                       style={({ pressed }) => [styles.sheetRow, (pressed || isSelected) && styles.sheetRowActive]}
                     >
-                      {Icon && <Icon size={20} color={isSelected ? colors.brandPrimary : colors.contentPrimary} />}
+                      {Icon && <Icon size={20} color={isSelected ? color.brand.primary : color.content.primary} />}
                       <Text
-                        style={[typography.bodyLarge, { color: isSelected ? colors.brandPrimary : colors.contentPrimary }]}
+                        style={[type.bodyLarge, { color: isSelected ? color.brand.primary : color.content.primary }]}
                       >
                         {item.label}
                       </Text>
@@ -245,8 +245,8 @@ export function DateField({ label, displayValue, onPress, error }: DateFieldProp
           onPress={onPress}
           style={fieldStyle}
         >
-          <Calendar size={20} color={colors.contentPrimary} />
-          <Text style={[typography.bodyLarge, styles.input]}>{displayValue}</Text>
+          <Calendar size={20} color={color.content.primary} />
+          <Text style={[type.bodyLarge, styles.input]}>{displayValue}</Text>
         </Pressable>
       )}
     </FieldFrame>
@@ -259,16 +259,16 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   label: {
-    color: colors.contentPrimary,
+    color: color.content.primary,
   },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[8],
     paddingHorizontal: spacing[16],
-    backgroundColor: colors.inputFill,
+    backgroundColor: color.surface.default,
     borderWidth: 1,
-    borderColor: colors.inputBorder,
+    borderColor: color.border.default,
   },
   amountField: {
     height: 64,
@@ -281,12 +281,12 @@ const styles = StyleSheet.create({
   // 2px borders: shrink the padding by 1px so the content does not shift.
   fieldFocused: {
     borderWidth: 2,
-    borderColor: colors.inputBorderFocus,
+    borderColor: color.brand.primary,
     paddingHorizontal: spacing[16] - 1,
   },
   fieldError: {
     borderWidth: 2,
-    borderColor: colors.inputBorderError,
+    borderColor: color.feedback.error,
     paddingHorizontal: spacing[16] - 1,
   },
   input: {
@@ -295,10 +295,10 @@ const styles = StyleSheet.create({
     // The field border shows focus; hide the browser's own outline on web.
     outlineStyle: 'solid',
     outlineWidth: 0,
-    color: colors.contentPrimary,
+    color: color.content.primary,
   },
   secondary: {
-    color: colors.contentSecondary,
+    color: color.content.secondary,
   },
   supporting: {
     flexDirection: 'row',
@@ -306,11 +306,11 @@ const styles = StyleSheet.create({
     gap: spacing[4],
   },
   helperText: {
-    color: colors.contentSecondary,
+    color: color.content.secondary,
   },
   errorText: {
     flex: 1,
-    color: colors.feedbackError,
+    color: color.feedback.error,
   },
   scrim: {
     flex: 1,
@@ -320,12 +320,12 @@ const styles = StyleSheet.create({
     maxHeight: '70%',
     paddingTop: spacing[16],
     paddingHorizontal: spacing[16],
-    backgroundColor: colors.surfaceDefault,
+    backgroundColor: color.surface.default,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
   },
   sheetTitle: {
-    color: colors.contentPrimary,
+    color: color.content.primary,
     paddingHorizontal: spacing[8],
     paddingBottom: spacing[8],
   },
@@ -338,6 +338,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   sheetRowActive: {
-    backgroundColor: colors.brandSubtle,
+    backgroundColor: color.brand.subtle,
   },
 });

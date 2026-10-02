@@ -1,17 +1,7 @@
-import {
-  Bus,
-  Film,
-  GraduationCap,
-  HeartPulse,
-  House,
-  Plane,
-  Repeat,
-  ShoppingBag,
-  ShoppingCart,
-  Utensils,
-  Zap,
-  type LucideIcon,
-} from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
+
+import { categoryIcon, type CategoryIconName } from '../../components/CategoryIcon';
+import { formatMoney } from '../../format';
 
 export const currencies = [
   { code: 'EUR', name: 'Euro', symbol: '€' },
@@ -29,35 +19,45 @@ export const currencyByCode = (code: CurrencyCode) => currencies.find((c) => c.c
 
 export interface StarterCategory {
   name: string;
-  icon: LucideIcon;
   /** Lucide icon name, stored on the expense category in rust-core. */
-  iconName: string;
+  iconName: CategoryIconName;
+  icon: LucideIcon;
 }
 
+const starter = (name: string, iconName: CategoryIconName): StarterCategory => ({
+  name,
+  iconName,
+  icon: categoryIcon(iconName),
+});
+
 export const starterCategories: StarterCategory[] = [
-  { name: 'Groceries', icon: ShoppingCart, iconName: 'shopping-cart' },
-  { name: 'Food & Dining', icon: Utensils, iconName: 'utensils' },
-  { name: 'Transport', icon: Bus, iconName: 'bus' },
-  { name: 'Shopping', icon: ShoppingBag, iconName: 'shopping-bag' },
-  { name: 'Housing', icon: House, iconName: 'house' },
-  { name: 'Bills', icon: Zap, iconName: 'zap' },
-  { name: 'Entertainment', icon: Film, iconName: 'film' },
-  { name: 'Subscriptions', icon: Repeat, iconName: 'repeat' },
-  { name: 'Health', icon: HeartPulse, iconName: 'heart-pulse' },
-  { name: 'Travel', icon: Plane, iconName: 'plane' },
-  { name: 'Education', icon: GraduationCap, iconName: 'graduation-cap' },
+  starter('Groceries', 'shopping-cart'),
+  starter('Food & Dining', 'utensils'),
+  starter('Transport', 'bus'),
+  starter('Shopping', 'shopping-bag'),
+  starter('Housing', 'house'),
+  starter('Bills', 'zap'),
+  starter('Entertainment', 'film'),
+  starter('Subscriptions', 'repeat'),
+  starter('Health', 'heart-pulse'),
+  starter('Travel', 'plane'),
+  starter('Education', 'graduation-cap'),
 ];
 
 export const categoryByName = (name: string) => starterCategories.find((c) => c.name === name)!;
 
 /**
- * Display-only formatting of an amount the user typed, e.g. "4250" → "€4,250.00".
- * Rust parses and validates the raw string; never do maths on the result.
+ * Cents for displaying an amount the user typed, e.g. "4250" → 425000.
+ * Display only: Rust parses and validates the raw string that gets saved.
  */
-export function formatAmount(raw: string, currency: CurrencyCode) {
+export function typedAmountCents(raw: string) {
   const value = Number(raw || 0);
-  return new Intl.NumberFormat('en-IE', { style: 'currency', currency }).format(Number.isFinite(value) ? value : 0);
+  return Number.isFinite(value) ? Math.round(value * 100) : 0;
 }
+
+/** "4250" → "€4,250.00". */
+export const formatTyped = (raw: string, currency: CurrencyCode) =>
+  formatMoney(typedAmountCents(raw), { currency });
 
 const pad = (n: number) => String(n).padStart(2, '0');
 

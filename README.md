@@ -30,9 +30,12 @@ no account and no cloud sync.
 | JSON API for the frontend (`api::dispatch`) | ✅ Done |
 | TypeScript client for the API (`src/services/viseCore.ts`) | ✅ Done (type-checked) |
 | Native bridge (Expo module: Kotlin/Swift → Rust) | ⏳ Not started (needs Android SDK / Xcode) |
-| Screens implementing the Figma design | ⏳ Waiting for exported design frames (see [Design](#design)) |
+| Onboarding (Figma "1 · Onboarding") | ✅ Built; saves through `viseCore` once the bridge exists |
+| Main app screens (Figma "2 · Main app (tabs)") | ✅ Built with demo data; not yet wired to `viseCore` |
 
-The app currently still shows the Expo starter screen.
+The app opens on onboarding, then the tab screens (Dashboard, Transactions, Budgets,
+Reports, Settings) and Goals, which render from `src/data/demo.ts` until the native
+bridge exists. Onboarding completion is not persisted yet, so it shows on every launch.
 
 ---
 
@@ -42,7 +45,12 @@ The app currently still shows the Expo starter screen.
 Vise/
 ├── .github/workflows/        CI: Rust tests, clippy + fmt, TypeScript type-check
 └── vise-app/                 Expo app
-    ├── App.tsx, index.ts     App entry (starter screen for now)
+    ├── app/                  Expo Router routes: onboarding.tsx, (tabs)/ for the 5 tabs, goals.tsx
+    ├── src/components/       Design-system components (cards, charts, controls, nav)
+    ├── src/theme/tokens.ts   Colours, spacing, radii and text styles from Figma
+    ├── src/features/onboarding/  Onboarding steps, flow state and saving via viseCore
+    ├── src/data/demo.ts      Demo data shown until the Rust bridge exists
+    ├── src/format.ts         Money and date display formatting
     ├── src/services/
     │   ├── types.ts          TS mirrors of the Rust JSON types
     │   └── viseCore.ts       The only file that calls Rust
@@ -94,7 +102,7 @@ is nothing to install system-wide.
 ## Running
 
 ```bash
-# Start the Expo dev server (starter screen until the UI is built)
+# Start the Expo dev server
 cd vise-app
 npm start
 
