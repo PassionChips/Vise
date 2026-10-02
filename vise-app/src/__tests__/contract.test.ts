@@ -2,7 +2,15 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import type { CategoryStatus, MonthlySummary, Settings, Transaction } from '../services/types';
+import type {
+  CategoryStatus,
+  CsvExport,
+  DataOverview,
+  DeletedCounts,
+  MonthlySummary,
+  Settings,
+  Transaction,
+} from '../services/types';
 
 // Typed samples: `tsc` fails if types.ts loses or gains a field these do not list, and the
 // key comparison below fails if they drift from what rust-core returns (see rust-core/tests/contract.rs).
@@ -14,7 +22,20 @@ const settings: Settings = {
   income_source_name: null,
   warning_threshold_percent: 80,
   onboarding_completed: false,
+  theme: 'system',
+  avatar: null,
 };
+
+const overview: DataOverview = {
+  transactions: 0,
+  categories: 0,
+  income_sources: 0,
+  budgets: 0,
+};
+
+const csvExport: CsvExport = { filename: 'vise-export-2026-10-04.csv', csv: '', transaction_count: 0, budget_count: 0 };
+
+const deleted: DeletedCounts = { transactions: 0, categories: 0, income_sources: 0, budgets: 0 };
 
 const category: CategoryStatus = {
   category_id: 1,
@@ -80,4 +101,7 @@ describe('TypeScript types match the rust-core JSON contract', () => {
   it('MonthlySummary', () => expect(sorted(summary)).toEqual(contract.MonthlySummary));
   it('CategoryStatus', () => expect(sorted(category)).toEqual(contract.CategoryStatus));
   it('Transaction', () => expect(sorted(transaction)).toEqual(contract.Transaction));
+  it('DataOverview', () => expect(sorted(overview)).toEqual(contract.DataOverview));
+  it('CsvExport', () => expect(sorted(csvExport)).toEqual(contract.CsvExport));
+  it('DeletedCounts', () => expect(sorted(deleted)).toEqual(contract.DeletedCounts));
 });

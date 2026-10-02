@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Alert } from '../src/components/Alert';
@@ -16,7 +16,8 @@ import { currencyByCode, type CurrencyCode } from '../src/features/onboarding/da
 import { addTransaction, listTransactions, updateTransaction, ViseError } from '../src/services/viseCore';
 import type { Transaction } from '../src/services/types';
 import { useCoreQuery } from '../src/data/store';
-import { color, spacing, type } from '../src/theme/tokens';
+import { color, spacing, themed, type } from '../src/theme/tokens';
+import { useTheme } from '../src/theme/ThemeProvider';
 
 const KINDS = ['Expense', 'Income'] as const;
 type Kind = (typeof KINDS)[number];
@@ -39,6 +40,7 @@ function displayDate(iso: string) {
 
 /** Add (no params) or edit (?id=<transaction id>) a transaction. */
 export default function AddTransactionScreen() {
+  useTheme();
   const params = useLocalSearchParams<{ type?: string; id?: string }>();
   const editingId = params.id ? Number(params.id) : null;
   const finance = useFinance(currentMonth());
@@ -207,7 +209,7 @@ function Form({ data, existing, initialIncome }: { data: FinanceData; existing: 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   flex: { flex: 1 },
   screen: { flex: 1, backgroundColor: color.surface.background },
   bar: { height: 56, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing[16] },
@@ -215,4 +217,4 @@ const styles = StyleSheet.create({
   title: { flex: 1, textAlign: 'center', color: color.content.primary },
   form: { gap: spacing[16], paddingHorizontal: spacing[24], paddingTop: spacing[8], paddingBottom: spacing[24] },
   footer: { paddingHorizontal: spacing[24], paddingBottom: spacing[16] },
-});
+}));

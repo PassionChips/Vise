@@ -1,8 +1,8 @@
 // Control/Radio. Selected = 2px ring + dot.
 
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
-import { color, radius, spacing, type } from '../theme/tokens';
+import { color, radius, spacing, themed, type } from '../theme/tokens';
 
 export interface RadioOption<T extends string> {
   value: T;
@@ -40,7 +40,7 @@ export function RadioGroup<T extends string>({ options, value, onChange, accessi
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   card: {
     alignSelf: 'stretch',
     paddingHorizontal: spacing[16],
@@ -78,4 +78,4 @@ const styles = StyleSheet.create({
   label: {
     color: color.content.primary,
   },
-});
+}));

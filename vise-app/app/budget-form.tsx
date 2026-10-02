@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { Trash2, X } from 'lucide-react-native';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Alert } from '../src/components/Alert';
@@ -15,7 +15,8 @@ import { setDeletedBudget } from '../src/data/undo';
 import { centsToAmount, currentMonth, formatMoney } from '../src/format';
 import { currencyByCode, type CurrencyCode } from '../src/features/onboarding/data';
 import { deleteCategoryBudget, setCategoryBudget, ViseError } from '../src/services/viseCore';
-import { color, spacing, type } from '../src/theme/tokens';
+import { color, spacing, themed, type } from '../src/theme/tokens';
+import { useTheme } from '../src/theme/ThemeProvider';
 
 type Errors = Partial<Record<'limit' | 'category' | 'form', string>>;
 
@@ -23,6 +24,7 @@ const FIELD: Record<string, 'limit' | 'category'> = { limit: 'limit', expense_ca
 
 /** Create (no params) or edit (?id=<category id>) a monthly category budget. */
 export default function BudgetFormScreen() {
+  useTheme();
   const params = useLocalSearchParams<{ id?: string }>();
   const finance = useFinance(currentMonth());
   return (
@@ -157,7 +159,7 @@ function Form({ data, editingId }: { data: FinanceData; editingId: number | null
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   flex: { flex: 1 },
   screen: { flex: 1, backgroundColor: color.surface.background },
   bar: { height: 56, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing[16] },
@@ -166,4 +168,4 @@ const styles = StyleSheet.create({
   form: { gap: spacing[16], paddingHorizontal: spacing[24], paddingTop: spacing[8], paddingBottom: spacing[24] },
   delete: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing[8], height: 48 },
   footer: { paddingHorizontal: spacing[24], paddingBottom: spacing[16] },
-});
+}));

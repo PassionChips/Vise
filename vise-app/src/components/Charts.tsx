@@ -1,7 +1,7 @@
-import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { formatMoney } from '../format';
-import { color, spacing, type } from '../theme/tokens';
+import { color, spacing, themed, type } from '../theme/tokens';
 import { CategoryIcon } from './CategoryIcon';
 import { ProgressBar } from './ProgressBar';
 
@@ -100,6 +100,52 @@ export function IncomeExpenseChart({ months, summary }: IncomeExpenseChartProps)
   );
 }
 
+// ----- Finance/NetChart -----
+
+interface NetChartProps {
+  /** `net_cents` = income − spending for the month, from rust-core. */
+  months: { label: string; net_cents: number; in_progress: boolean }[];
+  summary: string;
+}
+
+const NET_HALF_HEIGHT = 64;
+
+/** Saved (above the line, green) or overspent (below, red) per month. */
+export function NetChart({ months, summary }: NetChartProps) {
+  const max = Math.max(...months.map((m) => Math.abs(m.net_cents)), 1);
+  const height = (cents: number) => (cents === 0 ? 0 : Math.max(2, (Math.abs(cents) / max) * NET_HALF_HEIGHT));
+  const hasNegative = months.some((m) => m.net_cents < 0);
+
+  return (
+    <View accessible accessibilityRole="image" accessibilityLabel={summary} style={[styles.chart, { gap: 10 }]}>
+      <View style={[styles.plotSpaced, styles.netPlot]}>
+        {months.map((m) => {
+          const saved = m.net_cents >= 0;
+          return (
+            <View key={m.label} style={styles.monthColumn}>
+              <View style={styles.netHalf}>
+                {saved && <View style={[styles.netBar, styles.netUp, styles.saved, m.in_progress && styles.inProgress, { height: height(m.net_cents) }]} />}
+              </View>
+              <View style={styles.netBaseline} />
+              <View style={[styles.netHalf, styles.netHalfDown]}>
+                {!saved && <View style={[styles.netBar, styles.netDown, styles.overspent, m.in_progress && styles.inProgress, { height: height(m.net_cents) }]} />}
+              </View>
+              <Text style={[type.bodySmall, styles.secondary]}>{m.label}</Text>
+            </View>
+          );
+        })}
+      </View>
+      <Legend
+        items={[
+          { label: 'Saved', swatch: styles.saved },
+          ...(hasNegative ? [{ label: 'Overspent', swatch: styles.overspent }] : []),
+          { label: 'Month in progress', swatch: [styles.saved, styles.inProgress] },
+        ]}
+      />
+    </View>
+  );
+}
+
 // ----- Finance/CategoryBreakdown -----
 
 interface CategoryBreakdownProps {
@@ -131,7 +177,7 @@ export function CategoryBreakdown({ items }: CategoryBreakdownProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   primary: { color: color.content.primary },
   secondary: { color: color.content.secondary },
   flex: { flex: 1 },
@@ -154,6 +200,15 @@ const styles = StyleSheet.create({
   income: { backgroundColor: color.finance.remaining },
   expense: { backgroundColor: color.finance.spending },
   inProgress: { opacity: 0.4 },
+  netPlot: { flexDirection: 'row', alignItems: 'flex-start' },
+  netHalf: { height: NET_HALF_HEIGHT, justifyContent: 'flex-end', alignItems: 'center' },
+  netHalfDown: { justifyContent: 'flex-start' },
+  netBaseline: { alignSelf: 'stretch', height: 1, minWidth: 22, backgroundColor: color.border.default },
+  netBar: { width: 18 },
+  netUp: { borderTopLeftRadius: 4, borderTopRightRadius: 4 },
+  netDown: { borderBottomLeftRadius: 4, borderBottomRightRadius: 4 },
+  saved: { backgroundColor: color.finance.remaining },
+  overspent: { backgroundColor: color.finance.overBudget },
   legend: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 16, rowGap: 4 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   swatch: { width: 10, height: 10, borderRadius: 2 },
@@ -161,4 +216,4 @@ const styles = StyleSheet.create({
   breakdownRow: { gap: 6 },
   breakdownTop: { flexDirection: 'row', alignItems: 'center', gap: spacing[8] },
   percent: { width: 40, textAlign: 'right' },
-});
+}));

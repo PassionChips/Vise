@@ -7,9 +7,10 @@ import {
   Settings,
   Wallet,
 } from 'lucide-react-native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
-import { color, radius, spacing, type } from '../theme/tokens';
+import { color, radius, spacing, themed, type } from '../theme/tokens';
+import { useTheme } from '../theme/ThemeProvider';
 
 /** Route name → tab icon and label, in the fixed design order. */
 export const TABS: Record<string, { label: string; icon: LucideIcon }> = {
@@ -22,6 +23,7 @@ export const TABS: Record<string, { label: string; icon: LucideIcon }> = {
 
 /** Navigation/BottomBar: height 64 + bottom safe-area inset. */
 export function BottomNavigation({ state, navigation, insets }: BottomTabBarProps) {
+  useTheme();
   return (
     <View accessibilityRole="tablist" style={[styles.bar, { paddingBottom: insets.bottom }]}>
       {state.routes.map((route, index) => {
@@ -58,7 +60,7 @@ export function BottomNavigation({ state, navigation, insets }: BottomTabBarProp
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   bar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -84,4 +86,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   indicatorActive: { backgroundColor: color.brand.subtle },
-});
+}));

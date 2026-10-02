@@ -2,13 +2,12 @@
 
 import { ChevronRight, Trash2, X, type LucideIcon } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { color, radius, spacing, type } from '../theme/tokens';
+import { color, radius, spacing, themed, type } from '../theme/tokens';
 import { IconButton } from './Buttons';
 
-const SCRIM = 'rgba(16, 23, 19, 0.6)';
 
 // ----- Overlay/BottomSheet -----
 
@@ -76,10 +75,14 @@ interface ConfirmDialogProps {
   confirmLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Extra content between the message and the buttons (e.g. a "download a copy first" action). */
+  children?: ReactNode;
+  /** Disables both buttons and shows a spinner on confirm while work is in progress. */
+  busy?: boolean;
 }
 
 /** Destructive confirmation: cancel on the left, red confirm on the right. */
-export function ConfirmDialog({ visible, title, message, confirmLabel, onConfirm, onCancel }: ConfirmDialogProps) {
+export function ConfirmDialog({ visible, title, message, confirmLabel, onConfirm, onCancel, children, busy }: ConfirmDialogProps) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={styles.dialogScrim}>
@@ -91,12 +94,29 @@ export function ConfirmDialog({ visible, title, message, confirmLabel, onConfirm
             <Text accessibilityRole="header" style={[type.headingMedium, styles.primary]}>{title}</Text>
             <Text style={[type.bodyMedium, styles.secondary]}>{message}</Text>
           </View>
+          {children}
           <View style={styles.dialogButtons}>
-            <Pressable accessibilityRole="button" onPress={onCancel} style={[styles.dialogButton, styles.cancel]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !!busy }}
+              disabled={busy}
+              onPress={onCancel}
+              style={[styles.dialogButton, styles.cancel]}
+            >
               <Text style={[type.button, styles.primary]}>Cancel</Text>
             </Pressable>
-            <Pressable accessibilityRole="button" onPress={onConfirm} style={[styles.dialogButton, styles.destructive]}>
-              <Text style={[type.button, { color: color.content.onBrand }]}>{confirmLabel}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !!busy, busy: !!busy }}
+              disabled={busy}
+              onPress={onConfirm}
+              style={[styles.dialogButton, styles.destructive]}
+            >
+              {busy ? (
+                <ActivityIndicator color={color.content.onBrand} />
+              ) : (
+                <Text style={[type.button, { color: color.content.onBrand }]}>{confirmLabel}</Text>
+              )}
             </Pressable>
           </View>
         </View>
@@ -128,10 +148,10 @@ export function Toast({ message, actionLabel, onAction }: ToastProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   primary: { color: color.content.primary },
   secondary: { color: color.content.secondary },
-  scrim: { flex: 1, backgroundColor: SCRIM },
+  scrim: { flex: 1, backgroundColor: color.overlay.scrim },
   sheet: {
     paddingTop: spacing[8],
     paddingHorizontal: spacing[24],
@@ -157,7 +177,7 @@ const styles = StyleSheet.create({
   },
   tile: { width: 40, height: 40, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center' },
   actionText: { flex: 1 },
-  dialogScrim: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: SCRIM },
+  dialogScrim: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: color.overlay.scrim },
   dialog: {
     width: 320,
     maxWidth: '90%',
@@ -195,4 +215,4 @@ const styles = StyleSheet.create({
     boxShadow: '0px 4px 12px rgba(15, 23, 18, 0.08)',
   },
   toastText: { flex: 1, color: color.content.onBrand },
-});
+}));

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { color, radius, spacing } from '../theme/tokens';
+import { color, radius, spacing, themed } from '../theme/tokens';
 
 interface Props {
   children: ReactNode;
@@ -15,7 +15,7 @@ export function Card({ children, dashed, style }: Props) {
   return <View style={[styles.card, dashed && styles.dashed, style]}>{children}</View>;
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   card: {
     backgroundColor: color.surface.default,
     borderColor: color.border.default,
@@ -25,4 +25,4 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   dashed: { borderStyle: 'dashed' },
-});
+}));

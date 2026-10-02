@@ -1,7 +1,7 @@
 import { Search, X } from 'lucide-react-native';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { color, elevationSm, radius, spacing, type } from '../theme/tokens';
+import { color, elevationSm, radius, spacing, themed, type } from '../theme/tokens';
 
 // ----- Control/SegmentedControl -----
 
@@ -105,7 +105,7 @@ export function SearchInput({ value, onChangeText, placeholder }: SearchInputPro
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   track: {
     flexDirection: 'row',
     gap: 4,
@@ -152,4 +152,4 @@ const styles = StyleSheet.create({
     color: color.content.primary,
     paddingVertical: 0,
   },
-});
+}));

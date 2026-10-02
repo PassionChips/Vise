@@ -17,6 +17,10 @@ pub struct AppSettings {
     pub onboarding_completed_at: Option<i64>,
     pub created_at: i64,
     pub updated_at: i64,
+    /// "system", "light" or "dark".
+    pub theme: String,
+    /// Preset avatar id, or None for initials.
+    pub avatar: Option<String>,
 }
 
 #[derive(Debug, Clone, AsChangeset, Default)]
@@ -29,4 +33,6 @@ pub struct UpdateAppSettings {
     pub income_source_id: Option<Option<i32>>,
     pub warning_threshold_percent: Option<i32>,
     pub onboarding_completed_at: Option<Option<i64>>,
+    pub theme: Option<String>,
+    pub avatar: Option<Option<String>>,
 }

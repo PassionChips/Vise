@@ -3,12 +3,12 @@
 
 import { ChevronLeft } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { IconButton, TertiaryButton } from '../../components/Buttons';
 import { ProgressBar } from '../../components/ProgressBar';
-import { color, spacing, type } from '../../theme/tokens';
+import { color, spacing, themed, type } from '../../theme/tokens';
 
 export interface StepperProps {
   step: number;
@@ -70,7 +70,7 @@ export function OnboardingScreen({ stepper, children, actions, gap = spacing[24]
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   safeArea: {
     flex: 1,
     backgroundColor: color.surface.background,
@@ -107,4 +107,4 @@ const styles = StyleSheet.create({
   actions: {
     gap: spacing[8],
   },
-});
+}));

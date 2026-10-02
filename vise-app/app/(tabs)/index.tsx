@@ -10,7 +10,7 @@ import {
   Wallet,
 } from 'lucide-react-native';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { Avatar } from '../../src/components/Avatar';
 import { IconButton, PrimaryButton, TertiaryButton } from '../../src/components/Buttons';
@@ -42,7 +42,8 @@ import {
   todayIso,
 } from '../../src/format';
 import { getSpendingTrend, predictSpending } from '../../src/services/viseCore';
-import { color, spacing, type } from '../../src/theme/tokens';
+import { color, spacing, themed, type } from '../../src/theme/tokens';
+import { useTheme } from '../../src/theme/ThemeProvider';
 
 const RANGES = ['3M', '6M', '12M'] as const;
 const RANGE_MONTHS = { '3M': 3, '6M': 6, '12M': 12 } as const;
@@ -54,6 +55,7 @@ function greeting(hour: number): string {
 }
 
 export default function DashboardScreen() {
+  useTheme();
   const month = currentMonth();
   const finance = useFinance(month);
 
@@ -88,7 +90,7 @@ function Dashboard({ data }: { data: FinanceData }) {
   return (
     <Screen gap={spacing[24]}>
       <View style={styles.header}>
-        <Avatar name={name ?? 'You'} />
+        <Avatar name={name ?? 'You'} avatarId={settings.avatar} />
         <View style={styles.greeting}>
           <Text style={[type.bodySmall, styles.secondary]}>{greeting(new Date().getHours())}</Text>
           <Text numberOfLines={1} style={[type.headingLarge, styles.primary]}>{name ?? 'Welcome'}</Text>
@@ -282,7 +284,7 @@ function SpendingCard({ month, currency }: { month: string; currency: string }) 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   primary: { color: color.content.primary },
   secondary: { color: color.content.secondary },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing[12] },
@@ -295,4 +297,4 @@ const styles = StyleSheet.create({
   spendingCard: { gap: spacing[16] },
   spendingHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   section: { gap: spacing[12] },
-});
+}));

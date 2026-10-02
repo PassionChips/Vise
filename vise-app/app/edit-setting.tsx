@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { X } from 'lucide-react-native';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Alert } from '../src/components/Alert';
@@ -14,7 +14,8 @@ import { resolveSource, sourceOptions } from '../src/data/pickers';
 import { currencies, currencyByCode, type CurrencyCode } from '../src/features/onboarding/data';
 import { getSettings, listIncomeSources, updateSettings, ViseError } from '../src/services/viseCore';
 import type { IncomeSource, Settings, UpdateSettingsInput } from '../src/services/types';
-import { color, spacing, type } from '../src/theme/tokens';
+import { color, spacing, themed, type } from '../src/theme/tokens';
+import { useTheme } from '../src/theme/ThemeProvider';
 
 type Field = 'name' | 'currency' | 'income' | 'source' | 'threshold';
 
@@ -28,6 +29,7 @@ const TITLES: Record<Field, string> = {
 
 /** One screen for the editable settings; saves through rust-core, then Settings, Dashboard and Budgets reload. */
 export default function EditSettingScreen() {
+  useTheme();
   const { field } = useLocalSearchParams<{ field?: Field }>();
   const kind: Field = field && field in TITLES ? field : 'name';
   const data = useCoreQuery(async () => ({ settings: await getSettings(), sources: await listIncomeSources() }));
@@ -133,7 +135,7 @@ function Form({ kind, settings, sources }: { kind: Field; settings: Settings; so
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   flex: { flex: 1 },
   screen: { flex: 1, backgroundColor: color.surface.background },
   bar: { height: 56, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing[16] },
@@ -141,4 +143,4 @@ const styles = StyleSheet.create({
   title: { flex: 1, textAlign: 'center', color: color.content.primary },
   form: { gap: spacing[16], paddingHorizontal: spacing[24], paddingTop: spacing[8], paddingBottom: spacing[24] },
   footer: { paddingHorizontal: spacing[24], paddingBottom: spacing[16] },
-});
+}));

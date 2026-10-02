@@ -1,14 +1,19 @@
 {
   "_comment": "Field names of the JSON rust-core returns. Checked by rust-core/tests/contract.rs and by src/__tests__/contract.test.ts against src/services/types.ts. Change all three together.",
   "Settings": [
+    "avatar",
     "currency",
     "display_name",
     "income_source_id",
     "income_source_name",
     "monthly_income_cents",
     "onboarding_completed",
+    "theme",
     "warning_threshold_percent"
   ],
+  "DataOverview": ["budgets", "categories", "income_sources", "transactions"],
+  "CsvExport": ["budget_count", "csv", "filename", "transaction_count"],
+  "DeletedCounts": ["budgets", "categories", "income_sources", "transactions"],
   "MonthlySummary": [
     "budgeted_spent_cents",
     "categories",

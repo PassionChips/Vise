@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { Plus } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { Alert } from '../../src/components/Alert';
 import { IconButton, PrimaryButton } from '../../src/components/Buttons';
@@ -15,9 +15,11 @@ import { useFinance, type FinanceData } from '../../src/data/finance';
 import { setDeletedBudget, useDeletedBudget } from '../../src/data/undo';
 import { currentMonth, formatMoney, monthLabel, percentOf } from '../../src/format';
 import { setCategoryBudget } from '../../src/services/viseCore';
-import { color, spacing, type } from '../../src/theme/tokens';
+import { color, spacing, themed, type } from '../../src/theme/tokens';
+import { useTheme } from '../../src/theme/ThemeProvider';
 
 export default function BudgetsScreen() {
+  useTheme();
   const finance = useFinance(currentMonth());
   return <QueryState query={finance}>{(data) => <Budgets data={data} />}</QueryState>;
 }
@@ -145,7 +147,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   root: { flex: 1 },
   secondary: { color: color.content.secondary },
   overview: { padding: spacing[20], gap: spacing[16] },
@@ -153,4 +155,4 @@ const styles = StyleSheet.create({
   stats: { flexDirection: 'row', justifyContent: 'space-between' },
   stat: { gap: 2 },
   sectionHeader: { paddingTop: spacing[8] },
-});
+}));

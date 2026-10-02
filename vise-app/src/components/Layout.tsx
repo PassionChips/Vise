@@ -1,10 +1,10 @@
 import { router } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ScrollView, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { color, spacing, type } from '../theme/tokens';
+import { color, spacing, themed, type } from '../theme/tokens';
 import { IconButton } from './Buttons';
 
 interface ScreenProps {
@@ -72,7 +72,7 @@ export function SectionHeader({ title, trailing }: { title: string; trailing?: R
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   screen: { flex: 1, backgroundColor: color.surface.background },
   content: {
     paddingTop: spacing[8],
@@ -100,4 +100,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-});
+}));

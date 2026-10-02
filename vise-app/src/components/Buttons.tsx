@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react-native';
-import { ActivityIndicator, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, Text, type StyleProp, type ViewStyle } from 'react-native';
 
-import { color, radius, spacing, type } from '../theme/tokens';
+import { color, radius, spacing, themed, type } from '../theme/tokens';
 
 interface IconButtonProps {
   icon: LucideIcon;
@@ -119,7 +119,7 @@ export function TertiaryButton({ label, leadingIcon: Leading, trailingIcon: Trai
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   iconButton: {
     width: 44,
     height: 44,
@@ -143,4 +143,4 @@ const styles = StyleSheet.create({
   secondary: { backgroundColor: color.surface.variant },
   secondaryPressed: { backgroundColor: color.border.default },
   tertiaryPressed: { backgroundColor: color.brand.subtle },
-});
+}));
