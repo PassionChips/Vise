@@ -1,20 +1,19 @@
+import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import { OnboardingFlow } from './src/features/onboarding/OnboardingFlow';
+import { fontAssets } from './src/theme';
 
 export default function App() {
+  const [fontsLoaded] = useFonts(fontAssets);
+  if (!fontsLoaded) return null;
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <SafeAreaProvider>
+      <StatusBar style="dark" />
+      {/* The dashboard and demo data are not built yet; both callbacks are placeholders. */}
+      <OnboardingFlow onFinish={() => {}} onExploreDemo={() => {}} />
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
