@@ -37,3 +37,7 @@ yarn-error.*
 
 # Python analytics virtualenv
 python-analytics/.venv/
+
+# Native Rust libraries built by scripts/build-*-core.sh
+modules/vise-core/android/src/main/jniLibs/
+modules/vise-core/ios/*.a

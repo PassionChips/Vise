@@ -72,6 +72,20 @@ fn handle(
             let MonthPayload { month } = parse(payload)?;
             to_json(service::list_transactions(connection, &month))
         }
+        "updateTransaction" => to_json(service::update_transaction(connection, &parse(payload)?)),
+        "getSettings" => to_json(service::settings::get_settings(connection)),
+        "updateSettings" => to_json(service::settings::update_settings(
+            connection,
+            &parse(payload)?,
+        )),
+        "completeOnboarding" => to_json(service::settings::complete_onboarding(
+            connection,
+            &parse(payload)?,
+        )),
+        "deleteCategoryBudget" => {
+            service::delete_category_budget(connection, &parse(payload)?)?;
+            Ok(Value::Null)
+        }
         "listCategories" => to_json(service::list_categories(connection)),
         "addCategory" => to_json(service::add_category(connection, &parse(payload)?)),
         "listIncomeSources" => to_json(service::list_income_sources(connection)),
@@ -212,6 +226,84 @@ mod tests {
 
         assert_eq!(reply["data"]["spent_cents"], 1250);
         assert_eq!(reply["data"]["status"], "no_limit");
+    }
+
+    #[test]
+    fn onboarding_round_trip_through_the_api() {
+        let mut connection = establish_connection_test().unwrap();
+        assert_eq!(
+            call(&mut connection, "getSettings", "")["data"]["onboarding_completed"],
+            false
+        );
+
+        let reply = call(
+            &mut connection,
+            "completeOnboarding",
+            r#"{"currency":"EUR","today":"2026-09-18","monthly_income":"4250",
+                "budget_category":{"name":"Groceries"},"monthly_limit":"500"}"#,
+        );
+
+        assert_eq!(reply["ok"], true);
+        assert_eq!(reply["data"]["onboarding_completed"], true);
+        assert_eq!(reply["data"]["monthly_income_cents"], 425_000);
+        let reread = call(&mut connection, "getSettings", "");
+        assert_eq!(reread["data"]["income_source_name"], "Salary");
+
+        let summary = call(
+            &mut connection,
+            "getMonthlySummary",
+            r#"{"month":"2026-09","currency":"EUR"}"#,
+        );
+        assert_eq!(summary["data"]["left_cents"], 425_000);
+    }
+
+    #[test]
+    fn update_and_delete_transaction_and_budget() {
+        let mut connection = establish_connection_test().unwrap();
+        let added = call(
+            &mut connection,
+            "addTransaction",
+            r#"{"transaction_type":"expense","amount":"10","currency":"EUR","description":"Lunch","date":"2026-09-02"}"#,
+        );
+        let id = added["data"]["id"].as_i64().unwrap();
+
+        let updated = call(
+            &mut connection,
+            "updateTransaction",
+            &format!(
+                r#"{{"id":{id},"transaction_type":"expense","amount":"12.50","currency":"EUR","description":"Dinner","date":"2026-09-03"}}"#
+            ),
+        );
+        assert_eq!(updated["data"]["amount_cents"], 1250);
+        assert_eq!(updated["data"]["description"], "Dinner");
+
+        let missing = call(
+            &mut connection,
+            "updateTransaction",
+            r#"{"id":99,"transaction_type":"expense","amount":"1","currency":"EUR","description":"x","date":"2026-09-03"}"#,
+        );
+        assert_eq!(missing["error"]["kind"], "not_found");
+
+        let category = call(&mut connection, "addCategory", r#"{"name":"Food"}"#);
+        let category_id = category["data"]["id"].as_i64().unwrap();
+        call(
+            &mut connection,
+            "setCategoryBudget",
+            &format!(
+                r#"{{"month":"2026-09","currency":"EUR","expense_category_id":{category_id},"limit":"100"}}"#
+            ),
+        );
+        let key = format!(
+            r#"{{"month":"2026-09","currency":"EUR","expense_category_id":{category_id}}}"#
+        );
+        assert_eq!(
+            call(&mut connection, "deleteCategoryBudget", &key)["ok"],
+            true
+        );
+        assert_eq!(
+            call(&mut connection, "deleteCategoryBudget", &key)["error"]["kind"],
+            "not_found"
+        );
     }
 
     #[test]

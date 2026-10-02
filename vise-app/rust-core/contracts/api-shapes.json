@@ -1,0 +1,62 @@
+{
+  "_comment": "Field names of the JSON rust-core returns. Checked by rust-core/tests/contract.rs and by src/__tests__/contract.test.ts against src/services/types.ts. Change all three together.",
+  "Settings": [
+    "currency",
+    "display_name",
+    "income_source_id",
+    "income_source_name",
+    "monthly_income_cents",
+    "onboarding_completed",
+    "warning_threshold_percent"
+  ],
+  "MonthlySummary": [
+    "budgeted_spent_cents",
+    "categories",
+    "category_limits_total_cents",
+    "currency",
+    "expected_income_cents",
+    "income_basis_cents",
+    "income_cents",
+    "left_cents",
+    "month",
+    "net_cents",
+    "remaining_cents",
+    "savings_target_cents",
+    "savings_target_met",
+    "spending_limit_cents",
+    "spent_cents",
+    "status",
+    "unbudgeted_spent_cents"
+  ],
+  "CategoryStatus": [
+    "category_id",
+    "color",
+    "icon",
+    "limit_cents",
+    "name",
+    "remaining_cents",
+    "spent_cents",
+    "status"
+  ],
+  "Transaction": [
+    "amount_cents",
+    "completed_at",
+    "created_at",
+    "currency",
+    "description",
+    "exclude_from_totals",
+    "expense_category_id",
+    "external_id",
+    "id",
+    "income_source_id",
+    "merchant_name",
+    "occurred_at",
+    "raw_description",
+    "revolut_account_id",
+    "revolut_category",
+    "source_type",
+    "status",
+    "transaction_type",
+    "updated_at"
+  ]
+}

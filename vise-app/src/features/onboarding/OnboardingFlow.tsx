@@ -18,7 +18,10 @@ const numberedSteps: Step[] = ['currency', 'income', 'category', 'limit', 'trans
 
 /** Which step owns each rust-core validation field, so errors land on the right screen. */
 const fieldStep: Record<string, Step> = {
+  monthly_income: 'income',
+  budget_category: 'category',
   limit: 'limit',
+  transaction_type: 'transaction',
   amount: 'transaction',
   description: 'transaction',
   date: 'transaction',
@@ -28,10 +31,9 @@ const fieldStep: Record<string, Step> = {
 interface OnboardingFlowProps {
   userName?: string;
   onFinish: (answers: OnboardingAnswers) => void;
-  onExploreDemo: () => void;
 }
 
-export function OnboardingFlow({ userName, onFinish, onExploreDemo }: OnboardingFlowProps) {
+export function OnboardingFlow({ userName, onFinish }: OnboardingFlowProps) {
   const [step, setStep] = useState<Step>('welcome');
   const [answers, setAnswers] = useState<OnboardingAnswers>({
     currency: 'EUR',
@@ -84,7 +86,7 @@ export function OnboardingFlow({ userName, onFinish, onExploreDemo }: Onboarding
 
   switch (step) {
     case 'welcome':
-      return <WelcomeScreen onStart={() => setStep('currency')} onExploreDemo={onExploreDemo} />;
+      return <WelcomeScreen onStart={() => setStep('currency')} />;
     case 'currency':
       return (
         <CurrencyScreen
@@ -102,6 +104,7 @@ export function OnboardingFlow({ userName, onFinish, onExploreDemo }: Onboarding
           value={answers.monthlyIncome}
           onChange={(monthlyIncome) => update({ monthlyIncome })}
           onContinue={next}
+          errors={errors}
         />
       );
     case 'category':

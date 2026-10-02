@@ -1,6 +1,20 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    app_settings (id) {
+        id -> Nullable<Integer>,
+        currency -> Text,
+        display_name -> Nullable<Text>,
+        monthly_income_cents -> Nullable<BigInt>,
+        income_source_id -> Nullable<Integer>,
+        warning_threshold_percent -> Integer,
+        onboarding_completed_at -> Nullable<BigInt>,
+        created_at -> BigInt,
+        updated_at -> BigInt,
+    }
+}
+
+diesel::table! {
     auto_category_rules (id) {
         id -> Nullable<Integer>,
         expense_category_id -> Integer,
@@ -111,6 +125,7 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(app_settings -> income_sources (income_source_id));
 diesel::joinable!(auto_category_rules -> expense_categories (expense_category_id));
 diesel::joinable!(category_budgets -> budget_months (budget_month_id));
 diesel::joinable!(category_budgets -> expense_categories (expense_category_id));
@@ -120,6 +135,7 @@ diesel::joinable!(transactions -> income_sources (income_source_id));
 diesel::joinable!(transactions -> revolut_accounts (revolut_account_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    app_settings,
     auto_category_rules,
     budget_months,
     category_budgets,

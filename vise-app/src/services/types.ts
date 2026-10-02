@@ -88,6 +88,16 @@ export interface MonthlySummary {
   savings_target_cents: number | null;
   savings_target_met: boolean | null;
   status: BudgetStatus;
+  /** From Settings; null if never set. */
+  expected_income_cents: number | null;
+  /** The larger of actual and expected income. */
+  income_basis_cents: number;
+  /** income_basis_cents − spent_cents. */
+  left_cents: number;
+  category_limits_total_cents: number;
+  /** Spending in categories that have a limit. */
+  budgeted_spent_cents: number;
+  unbudgeted_spent_cents: number;
   categories: CategoryStatus[];
 }
 
@@ -145,6 +155,59 @@ export interface CategoryBudgetInput {
   currency: string;
   expense_category_id: number;
   limit: string;
+}
+
+export interface CategoryBudgetKey {
+  month: string;
+  currency: string;
+  expense_category_id: number;
+}
+
+export interface UpdateTransactionInput extends NewTransactionInput {
+  id: number;
+}
+
+// ----- Settings & onboarding -----
+
+export interface Settings {
+  currency: string;
+  display_name: string | null;
+  monthly_income_cents: number | null;
+  income_source_id: number | null;
+  income_source_name: string | null;
+  warning_threshold_percent: number;
+  onboarding_completed: boolean;
+}
+
+/** Fields left out are unchanged; blank display_name / monthly_income clears them. */
+export interface UpdateSettingsInput {
+  currency?: string;
+  display_name?: string;
+  monthly_income?: string;
+  income_source_id?: number;
+  warning_threshold_percent?: number;
+}
+
+export interface OnboardingCategory {
+  name: string;
+  icon?: string | null;
+}
+
+export interface OnboardingInput {
+  currency: string;
+  today: string; // YYYY-MM-DD
+  display_name?: string | null;
+  monthly_income?: string | null;
+  income_source_name?: string | null;
+  budget_category?: OnboardingCategory | null;
+  monthly_limit?: string | null;
+  first_transaction?: {
+    transaction_type: 'expense' | 'income';
+    amount: string;
+    description: string;
+    date: string;
+    category?: OnboardingCategory | null;
+  } | null;
 }
 
 // ----- Errors -----

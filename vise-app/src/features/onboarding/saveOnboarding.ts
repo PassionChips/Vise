@@ -1,6 +1,7 @@
-import { addCategory, addTransaction, listCategories, setCategoryBudget, ViseError } from '../../services/viseCore';
-import type { ExpenseCategory, TransactionType } from '../../services/types';
+import { completeOnboarding } from '../../services/viseCore';
+import type { TransactionType } from '../../services/types';
 import { categoryByName, isoDate, type CurrencyCode } from './data';
+import { todayIso } from '../../format';
 
 export interface OnboardingAnswers {
   currency: CurrencyCode;
@@ -16,54 +17,34 @@ export interface OnboardingAnswers {
   } | null;
 }
 
-/** Finds the category by name, creating it the first time it is used. */
-async function ensureCategory(name: string, existing: ExpenseCategory[]) {
-  const found = existing.find((c) => c.name.toLowerCase() === name.toLowerCase());
-  if (found) return found;
-  const created = await addCategory({ name, icon: categoryByName(name).iconName });
-  existing.push(created);
-  return created;
-}
+const category = (name: string) => ({ name, icon: categoryByName(name).iconName });
 
 /**
- * Writes the onboarding answers through the Rust core. Rejects with a
- * `ViseError` (validation errors carry `field`) for the screen to show.
+ * Sends every onboarding answer to rust-core in ONE call, which saves them in a single
+ * database transaction and marks onboarding complete only if all of it was written.
+ * Rejects with a `ViseError` (validation errors carry `field`) for the flow to show;
+ * there is no fallback, so a failure is never reported as success.
  *
- * Monthly income has no backing field in rust-core yet, so it is kept in the
- * flow's state only.
+ * Income is stored as the expected monthly income plus an income source ("Salary"), and
+ * an income first-transaction is linked to that same source. Retrying after success is
+ * harmless: rust-core ignores a second completion.
  */
 export async function saveOnboarding(answers: OnboardingAnswers) {
-  try {
-    const today = new Date();
-    const month = isoDate(today).slice(0, 7);
-    const categories = await listCategories();
-
-    if (answers.monthlyLimit) {
-      const category = await ensureCategory(answers.budgetCategory, categories);
-      await setCategoryBudget({
-        month,
-        currency: answers.currency,
-        expense_category_id: category.id,
-        limit: answers.monthlyLimit,
-      });
-    }
-
-    const tx = answers.transaction;
-    if (tx) {
-      const category = tx.type === 'expense' ? await ensureCategory(tx.category, categories) : null;
-      await addTransaction({
-        transaction_type: tx.type,
-        amount: tx.amount,
-        currency: answers.currency,
-        description: tx.description,
-        date: isoDate(tx.date),
-        expense_category_id: category?.id ?? null,
-      });
-    }
-  } catch (error) {
-    // The native bridge is not built yet (see README "Rust bridge"). Let the
-    // flow complete so the screens stay usable until it lands.
-    if (error instanceof ViseError && error.kind === 'bridge_unavailable') return;
-    throw error;
-  }
+  const tx = answers.transaction;
+  await completeOnboarding({
+    currency: answers.currency,
+    today: todayIso(),
+    monthly_income: answers.monthlyIncome || null,
+    budget_category: answers.monthlyLimit ? category(answers.budgetCategory) : null,
+    monthly_limit: answers.monthlyLimit || null,
+    first_transaction: tx
+      ? {
+          transaction_type: tx.type,
+          amount: tx.amount,
+          description: tx.description,
+          date: isoDate(tx.date),
+          category: tx.type === 'expense' ? category(tx.category) : null,
+        }
+      : null,
+  });
 }

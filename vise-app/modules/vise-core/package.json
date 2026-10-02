@@ -1,0 +1,7 @@
+{
+  "name": "vise-core",
+  "version": "1.0.0",
+  "description": "Expo module that forwards (method, payload) calls to the Rust core in rust-core/",
+  "license": "UNLICENSED",
+  "private": true
+}

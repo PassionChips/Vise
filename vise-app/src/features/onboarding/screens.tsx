@@ -4,7 +4,7 @@
 import { ArrowDownLeft, CircleCheck, Euro, Lock, ReceiptText } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { PrimaryButton, TertiaryButton } from '../../components/Buttons';
+import { PrimaryButton } from '../../components/Buttons';
 import { SegmentedControl } from '../../components/Controls';
 import { CategoryBudgetCard } from '../../components/FinanceCards';
 import { AmountInput, DateField, SelectField, TextField } from '../../components/Inputs';
@@ -28,16 +28,9 @@ type FieldErrors = Partial<Record<string, string>>;
 
 // ----- 1.1 Welcome -----
 
-export function WelcomeScreen({ onStart, onExploreDemo }: { onStart: () => void; onExploreDemo: () => void }) {
+export function WelcomeScreen({ onStart }: { onStart: () => void }) {
   return (
-    <OnboardingScreen
-      actions={
-        <>
-          <PrimaryButton label="Get started" onPress={onStart} />
-          <TertiaryButton label="Explore with demo data" size="large" onPress={onExploreDemo} />
-        </>
-      }
-    >
+    <OnboardingScreen actions={<PrimaryButton label="Get started" onPress={onStart} />}>
       <View style={styles.flex} />
       <View style={styles.mark} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <Text style={[type.headingLarge, styles.markGlyph]}>V</Text>
@@ -89,9 +82,10 @@ interface IncomeScreenProps {
   value: string;
   onChange: (value: string) => void;
   onContinue: () => void;
+  errors: FieldErrors;
 }
 
-export function MonthlyIncomeScreen({ stepper, currency, value, onChange, onContinue }: IncomeScreenProps) {
+export function MonthlyIncomeScreen({ stepper, currency, value, onChange, onContinue, errors }: IncomeScreenProps) {
   return (
     <OnboardingScreen stepper={stepper} actions={<PrimaryButton label="Continue" onPress={onContinue} />}>
       <Heading
@@ -105,6 +99,7 @@ export function MonthlyIncomeScreen({ stepper, currency, value, onChange, onCont
         value={value}
         onChangeText={onChange}
         helperText="You can change this any time in Settings"
+        error={errors.monthly_income}
       />
     </OnboardingScreen>
   );

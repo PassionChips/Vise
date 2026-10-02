@@ -1,3 +1,4 @@
+pub mod app_settings_repository;
 pub mod budget_month_repository;
 pub mod category_budget_repository;
 pub mod expense_category_repository;

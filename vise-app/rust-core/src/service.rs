@@ -9,6 +9,8 @@
 //! The frontend never does money maths or validation itself; it sends the
 //! raw form values here and displays what comes back.
 
+pub mod settings;
+
 use chrono::NaiveDate;
 use diesel::result::{DatabaseErrorKind, Error as DieselError};
 use diesel::sqlite::SqliteConnection;
@@ -25,12 +27,12 @@ use crate::models::budget_month::{BudgetMonth, NewBudgetMonth, UpdateBudgetMonth
 use crate::models::category_budget::{CategoryBudget, NewCategoryBudget};
 use crate::models::expense_category::{ExpenseCategory, NewExpenseCategory};
 use crate::models::income_source::{IncomeSource, NewIncomeSource};
-use crate::models::transaction::{NewTransaction, Transaction};
+use crate::models::transaction::{NewTransaction, Transaction, UpdateTransaction};
 use crate::money::{parse_amount_cents, parse_limit_cents};
 use crate::month::YearMonth;
 use crate::repository::{
-    budget_month_repository, category_budget_repository, expense_category_repository,
-    income_source_repository, transaction_repository,
+    app_settings_repository, budget_month_repository, category_budget_repository,
+    expense_category_repository, income_source_repository, transaction_repository,
 };
 
 /// Longest description or name accepted from the UI.
@@ -98,6 +100,23 @@ pub struct CategoryBudgetInput {
     pub currency: String,
     pub expense_category_id: i32,
     pub limit: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CategoryBudgetKey {
+    pub month: String,
+    pub currency: String,
+    pub expense_category_id: i32,
+}
+
+/// Changes to an existing transaction: the same fields as a new one.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct UpdateTransactionInput {
+    pub id: i32,
+    #[serde(flatten)]
+    pub fields: NewTransactionInput,
 }
 
 // ---------------------------------------------------------------------------
@@ -241,6 +260,42 @@ pub fn add_transaction(
 ) -> Result<Transaction, AppError> {
     let new_transaction = validate_new_transaction(input)?;
 
+    check_transaction_references(connection, &new_transaction)?;
+
+    Ok(transaction_repository::insert(
+        connection,
+        &new_transaction,
+    )?)
+}
+
+/// Replaces every editable field of a transaction with the validated input.
+pub fn update_transaction(
+    connection: &mut SqliteConnection,
+    input: &UpdateTransactionInput,
+) -> Result<Transaction, AppError> {
+    let new = validate_new_transaction(&input.fields)?;
+    check_transaction_references(connection, &new)?;
+
+    let changes = UpdateTransaction {
+        transaction_type: Some(new.transaction_type),
+        amount_cents: Some(new.amount_cents),
+        currency: Some(new.currency),
+        description: Some(new.description),
+        occurred_at: Some(new.occurred_at),
+        completed_at: Some(new.completed_at),
+        income_source_id: Some(new.income_source_id),
+        expense_category_id: Some(new.expense_category_id),
+        exclude_from_totals: Some(new.exclude_from_totals),
+        ..Default::default()
+    };
+    transaction_repository::update(connection, &changes, input.id)?
+        .ok_or_else(|| AppError::NotFound(format!("Transaction {} was not found", input.id)))
+}
+
+fn check_transaction_references(
+    connection: &mut SqliteConnection,
+    new_transaction: &NewTransaction,
+) -> Result<(), AppError> {
     if let Some(id) = new_transaction.expense_category_id
         && expense_category_repository::get_by_id(connection, id)?.is_none()
     {
@@ -257,11 +312,7 @@ pub fn add_transaction(
             "That income source no longer exists",
         ));
     }
-
-    Ok(transaction_repository::insert(
-        connection,
-        &new_transaction,
-    )?)
+    Ok(())
 }
 
 pub fn delete_transaction(connection: &mut SqliteConnection, id: i32) -> Result<(), AppError> {
@@ -401,14 +452,31 @@ pub fn set_category_budget(
     let limit_cents = parse_limit_cents(&input.limit)
         .map_err(|message| AppError::validation("limit", message))?;
 
-    if expense_category_repository::get_by_id(connection, input.expense_category_id)?.is_none() {
+    upsert_category_budget(
+        connection,
+        month,
+        &currency,
+        input.expense_category_id,
+        limit_cents,
+    )
+}
+
+/// Writes one category limit. Shared by `set_category_budget` and onboarding.
+fn upsert_category_budget(
+    connection: &mut SqliteConnection,
+    month: YearMonth,
+    currency: &str,
+    expense_category_id: i32,
+    limit_cents: i64,
+) -> Result<CategoryBudget, AppError> {
+    if expense_category_repository::get_by_id(connection, expense_category_id)?.is_none() {
         return Err(AppError::validation(
             "expense_category_id",
             "That category no longer exists",
         ));
     }
 
-    let budget = get_or_create_budget_month(connection, month, &currency)?;
+    let budget = get_or_create_budget_month(connection, month, currency)?;
     let budget_month_id = budget
         .id
         .ok_or_else(|| AppError::NotFound("Budget month has no id".to_string()))?;
@@ -417,10 +485,35 @@ pub fn set_category_budget(
         connection,
         &NewCategoryBudget {
             budget_month_id,
-            expense_category_id: input.expense_category_id,
+            expense_category_id,
             limit_cents,
         },
     )?)
+}
+
+/// Removes the limit for one category in one month. The category and its
+/// transactions are untouched.
+pub fn delete_category_budget(
+    connection: &mut SqliteConnection,
+    input: &CategoryBudgetKey,
+) -> Result<(), AppError> {
+    let month = validate_month(&input.month)?;
+    let currency = validate_currency(&input.currency)?;
+    let not_found = || AppError::NotFound("That budget was not found".to_string());
+
+    let budget = budget_month_repository::get_by_month(connection, &month.to_string(), &currency)?
+        .ok_or_else(not_found)?;
+    let budget_month_id = budget.id.ok_or_else(not_found)?;
+
+    if category_budget_repository::delete_for_category(
+        connection,
+        budget_month_id,
+        input.expense_category_id,
+    )? {
+        Ok(())
+    } else {
+        Err(not_found())
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -455,13 +548,20 @@ pub fn get_monthly_summary(
     let category_rows =
         budget_check::check_categories(&categories, &month_totals.spent_by_category, &limits);
 
-    Ok(summary::build_summary(
+    let mut monthly_summary = summary::build_summary(
         month,
         &currency,
         &month_totals,
         budget.as_ref(),
         category_rows,
-    ))
+    );
+
+    // Expected income is a setting in one currency; only apply it to that currency's summary.
+    let settings = app_settings_repository::get(connection)?;
+    if settings.currency == currency {
+        summary::apply_expected_income(&mut monthly_summary, settings.monthly_income_cents);
+    }
+    Ok(monthly_summary)
 }
 
 pub fn get_category_breakdown(
