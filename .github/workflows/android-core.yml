@@ -44,14 +44,20 @@ jobs:
             ${{ runner.os }}-android-cargo-
 
       - name: Build for Android
-        env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_LATEST_HOME }}
-        run: cargo ndk -t arm64-v8a -t x86_64 -o "$RUNNER_TEMP/jni" build --release --locked
+        # The runner image preinstalls the NDK; its path is in a shell variable, which the
+        # workflow `env:` context cannot read, so export it here.
+        run: |
+          export ANDROID_NDK_HOME="${ANDROID_NDK_LATEST_HOME:-$ANDROID_NDK_ROOT}"
+          echo "Using NDK at $ANDROID_NDK_HOME"
+          test -d "$ANDROID_NDK_HOME"
+          cargo ndk -t arm64-v8a -t x86_64 -o "$RUNNER_TEMP/jni" build --release --locked
 
       - name: Check the JNI entry points exist
         run: |
+          NDK="${ANDROID_NDK_LATEST_HOME:-$ANDROID_NDK_ROOT}"
+          LLVM_NM="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
           for abi in arm64-v8a x86_64; do
-            symbols=$(nm -D "$RUNNER_TEMP/jni/$abi/librust_core.so")
+            symbols=$("$LLVM_NM" -D "$RUNNER_TEMP/jni/$abi/librust_core.so")
             for name in Java_expo_modules_visecore_ViseCoreModule_nativeInit Java_expo_modules_visecore_ViseCoreModule_nativeCall; do
               echo "$symbols" | grep -q "$name" || { echo "::error::$name missing from $abi build"; exit 1; }
             done

@@ -143,6 +143,9 @@ Verified in this repo: the Rust library cross-compiles for `aarch64-linux-androi
 
 ## Tests and CI
 
+The emulator smoke test (`scripts/android-smoke-test.sh <apk>`) also runs on a connected phone:
+`adb install` the release APK build, then run the script with the APK path.
+
 Run locally:
 
 ```bash
@@ -157,6 +160,8 @@ cd vise-app && npm run typecheck && npm test
 | `app-tests.yml` | Type-check and unit tests | `tsc` errors or a Vitest test fails |
 | `ts-typecheck.yml` | tsc --noEmit | type errors (app files) |
 | `android-core.yml` | Build librust_core.so | the Android library stops compiling or loses its JNI entry points |
+| `android-app.yml` | Build Android app | the real app no longer builds (Rust core + Expo module + JS bundle), or the Rust library is missing from the APK |
+| `android-app.yml` | Run on Android emulator | on a fresh install the app does not reach the onboarding welcome screen (core or database failed to open), crashes, or does not reopen after a restart |
 
 What the tests pin down:
 
@@ -184,5 +189,5 @@ What the tests pin down:
 CI only blocks merging if the checks are marked **required** in GitHub (repo → Settings → Branches →
 branch protection rule for `main` → "Require status checks to pass"). Add:
 `Rust core tests`, `Clippy`, `Format Check`, `Type-check and unit tests`, `tsc --noEmit`,
-`Build librust_core.so`. Path filters mean a check is skipped when its paths are untouched; GitHub
+`Build librust_core.so`, `Build Android app`, `Run on Android emulator`. Path filters mean a check is skipped when its paths are untouched; GitHub
 treats skipped required checks as passing.

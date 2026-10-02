@@ -7,6 +7,7 @@ dist/
 web-build/
 expo-env.d.ts
 
+.gitignore
 # Native
 .kotlin/
 *.orig.*
@@ -41,3 +42,7 @@ python-analytics/.venv/
 # Native Rust libraries built by scripts/build-*-core.sh
 modules/vise-core/android/src/main/jniLibs/
 modules/vise-core/ios/*.a
+
+# Gradle output inside local Expo modules
+modules/*/android/.gradle/
+modules/*/android/build/
