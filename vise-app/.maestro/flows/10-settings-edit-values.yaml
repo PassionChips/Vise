@@ -1,0 +1,42 @@
+appId: com.reborn_lvl.viseapp
+name: Edit income, warning threshold and currency
+tags: [settings]
+---
+- runFlow: ../subflows/onboard.yaml
+- tapOn: "Settings"
+
+# Monthly income
+- tapOn: "Monthly income.*"
+- tapOn: "Expected monthly income"
+- eraseText: 15
+- inputText: "7200"
+- hideKeyboard
+- tapOn: "Save"
+- assertVisible: "₹7,200.00"
+
+# Warning threshold
+- tapOn: "Warning threshold.*"
+- tapOn: "Warn when a budget reaches.*"
+- eraseText: 5
+- inputText: "90"
+- hideKeyboard
+- tapOn: "Save"
+- assertVisible: "90%"
+
+# Invalid threshold is rejected by rust-core and the old value stays
+- tapOn: "Warning threshold.*"
+- tapOn: "Warn when a budget reaches.*"
+- eraseText: 5
+- inputText: "500"
+- hideKeyboard
+- tapOn: "Save"
+- assertVisible: "Choose a percentage between 1 and 100"
+- tapOn: "Close"
+- assertVisible: "90%"
+
+# Currency
+- tapOn: "Currency.*"
+- tapOn: "Currency.*"
+- tapOn: "USD.*"
+- tapOn: "Save"
+- assertVisible: "USD.*"

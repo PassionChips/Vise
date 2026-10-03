@@ -1,0 +1,38 @@
+# Completes onboarding with known values. Leaves the app on the Dashboard.
+#   Currency INR, income 5000, Groceries budget 200, first expense 12.50 "Onboarding coffee"
+appId: com.reborn_lvl.viseapp
+---
+- runFlow: fresh-start.yaml
+- assertVisible: "Get started"
+- tapOn: "Get started"
+
+- assertVisible: "Choose your currency"
+- tapOn: "INR — Indian rupee · ₹"
+- tapOn: "Continue"
+
+- assertVisible: "What comes in each month?"
+- tapOn: "Monthly income (after tax)"
+- inputText: "5000"
+- hideKeyboard
+- tapOn: "Continue"
+
+- assertVisible: "Pick a category to budget"
+- tapOn: "Groceries"
+- tapOn: "Continue"
+
+- assertVisible: "Set a monthly limit for Groceries"
+- tapOn: "Monthly limit"
+- inputText: "200"
+- hideKeyboard
+- tapOn: "Continue"
+
+- assertVisible: "Add your first transaction"
+- tapOn: "Amount"
+- inputText: "12.50"
+- tapOn: "Description"
+- inputText: "Onboarding coffee"
+- hideKeyboard
+- tapOn: "Add transaction"
+
+- assertVisible: "You’re all set.*"
+- tapOn: "Go to dashboard"

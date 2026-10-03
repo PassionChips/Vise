@@ -1,0 +1,18 @@
+appId: com.reborn_lvl.viseapp
+name: Add an income from the dashboard quick-add sheet
+tags: [transactions]
+---
+- runFlow: ../subflows/onboard.yaml
+- tapOn: "Quick add"
+- tapOn: "Income.*Salary, refunds, side work"
+- assertVisible: "Add income"
+- tapOn: "Amount"
+- inputText: "1500"
+- tapOn: "Description"
+- inputText: "Maestro Freelance"
+- hideKeyboard
+- tapOn: "Source.*"
+- tapOn: "Freelance"
+- tapOn: "Save income"
+- tapOn: "Transactions"
+- assertVisible: ".*Maestro Freelance.*"

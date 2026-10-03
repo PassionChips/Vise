@@ -1,0 +1,51 @@
+appId: com.reborn_lvl.viseapp
+name: Onboarding, every step filled in
+tags: [smoke, onboarding]
+---
+- runFlow: ../subflows/fresh-start.yaml
+- assertVisible: "Get started"
+- assertVisible: "No bank login needed.*"
+- tapOn: "Get started"
+
+# Step 1: currency
+- assertVisible: "Choose your currency"
+- tapOn: "INR — Indian rupee · ₹"
+- tapOn: "Continue"
+
+# Step 2: income
+- assertVisible: "What comes in each month?"
+- tapOn: "Monthly income (after tax)"
+- inputText: "5000"
+- hideKeyboard
+- tapOn: "Continue"
+
+# Step 3: category
+- assertVisible: "Pick a category to budget"
+- tapOn: "Transport"
+- tapOn: "Continue"
+
+# Step 4: limit
+- assertVisible: "Set a monthly limit for Transport"
+- tapOn: "Monthly limit"
+- inputText: "300"
+- hideKeyboard
+- tapOn: "Continue"
+
+# Step 5: first transaction
+- assertVisible: "Add your first transaction"
+- tapOn: "Amount"
+- inputText: "45.50"
+- tapOn: "Description"
+- inputText: "Bus pass"
+- hideKeyboard
+- tapOn: "Add transaction"
+
+# Summary written by rust-core
+- assertVisible: "You’re all set.*"
+- assertVisible: "INR.*"
+- assertVisible: "1 added"
+- tapOn: "Go to dashboard"
+
+# Landed on the dashboard with the saved data
+- assertVisible: "Dashboard"
+- assertVisible: ".*Bus pass.*"

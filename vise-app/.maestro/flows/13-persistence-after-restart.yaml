@@ -1,0 +1,19 @@
+appId: com.reborn_lvl.viseapp
+name: Data survives an app restart (SQLite on disk)
+tags: [smoke, persistence]
+---
+- runFlow: ../subflows/onboard.yaml
+- runFlow:
+    file: ../subflows/add-expense.yaml
+    env: { DESC: "Maestro Persist", AMOUNT: "9.99", CATEGORY: "Groceries" }
+
+# Kill and relaunch WITHOUT clearing state
+- stopApp
+- launchApp
+
+# No onboarding again, and the transaction is still there
+- assertNotVisible: "Get started"
+- tapOn: "Transactions"
+- assertVisible: ".*Maestro Persist.*"
+- tapOn: "Settings"
+- assertVisible: "₹5,000.00"
