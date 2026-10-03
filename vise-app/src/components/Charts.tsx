@@ -1,5 +1,7 @@
-import { Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useState } from 'react';
+import { Text, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
 
+import { isLabelShown, labelStride } from '../data/chartLayout';
 import { formatMoney } from '../format';
 import { color, spacing, themed, type } from '../theme/tokens';
 import { CategoryIcon } from './CategoryIcon';
@@ -21,6 +23,30 @@ function Legend({ items }: { items: { label: string; swatch: StyleProp<ViewStyle
   );
 }
 
+/**
+ * Measures the plot so every column gets an exact equal share of its width
+ * (flex alone is unreliable inside the horizontally swipeable Reports card),
+ * and works out which labels fit. Bars scale with the columns; labels that
+ * would overlap are thinned out, keeping the newest.
+ */
+function useColumnLabels(count: number) {
+  const [width, setWidth] = useState(0);
+  const onLayout = (event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width);
+  const stride = labelStride(width, count);
+  // Until measured, columns fall back to flex: 1.
+  const column: ViewStyle | undefined = width > 0 && count > 0 ? { width: width / count, flex: 0 } : undefined;
+  return { onLayout, column, shown: (index: number) => isLabelShown(index, count, stride) };
+}
+
+/** Month label under a column; a hidden one keeps its height so bars stay aligned. */
+function ColumnLabel({ text, shown }: { text: string; shown: boolean }) {
+  return (
+    <Text numberOfLines={1} style={[type.bodySmall, styles.secondary, styles.columnLabel]}>
+      {shown ? text : ' '}
+    </Text>
+  );
+}
+
 // ----- Finance/SpendingChart -----
 
 interface SpendingChartProps {
@@ -36,12 +62,14 @@ export function SpendingChart({ weeks, summary, showPredictions = true }: Spendi
   const visible = showPredictions ? weeks : weeks.filter((w) => !w.predicted);
   const max = Math.max(...visible.map((w) => w.spent_cents), 1);
   const hasPredicted = visible.some((w) => w.predicted);
+  const labels = useColumnLabels(visible.length);
 
   return (
     <View accessible accessibilityRole="image" accessibilityLabel={summary} style={styles.chart}>
-      <View style={[styles.plot, { height: 140 }]}>
-        {visible.map((week) => (
-          <View key={week.label} style={styles.column}>
+      <View onLayout={labels.onLayout} style={[styles.plot, { height: 140 }]}>
+        {/* Keyed by position: an estimate can share its month label with the oldest bar (e.g. two "Nov"). */}
+        {visible.map((week, index) => (
+          <View key={index} style={[styles.column, labels.column]}>
             <View
               style={[
                 styles.spendingBar,
@@ -49,7 +77,7 @@ export function SpendingChart({ weeks, summary, showPredictions = true }: Spendi
                 week.predicted ? styles.predictedBar : styles.actualBar,
               ]}
             />
-            <Text style={[type.bodySmall, styles.secondary]}>{week.label}</Text>
+            <ColumnLabel text={week.label} shown={labels.shown(index)} />
           </View>
         ))}
       </View>
@@ -75,17 +103,18 @@ const INCOME_EXPENSE_MAX_BAR = 113;
 export function IncomeExpenseChart({ months, summary }: IncomeExpenseChartProps) {
   const max = Math.max(...months.flatMap((m) => [m.income_cents, m.spent_cents]), 1);
   const height = (cents: number) => Math.max(2, (cents / max) * INCOME_EXPENSE_MAX_BAR);
+  const labels = useColumnLabels(months.length);
 
   return (
     <View accessible accessibilityRole="image" accessibilityLabel={summary} style={[styles.chart, { gap: 10 }]}>
-      <View style={[styles.plot, styles.plotSpaced, { height: 150 }]}>
-        {months.map((m) => (
-          <View key={m.label} style={styles.monthColumn}>
+      <View onLayout={labels.onLayout} style={[styles.plot, { height: 150 }]}>
+        {months.map((m, index) => (
+          <View key={index} style={[styles.monthColumn, labels.column]}>
             <View style={styles.barPair}>
               <View style={[styles.pairBar, styles.income, { height: height(m.income_cents) }]} />
               <View style={[styles.pairBar, styles.expense, m.in_progress && styles.inProgress, { height: height(m.spent_cents) }]} />
             </View>
-            <Text style={[type.bodySmall, styles.secondary]}>{m.label}</Text>
+            <ColumnLabel text={m.label} shown={labels.shown(index)} />
           </View>
         ))}
       </View>
@@ -115,14 +144,15 @@ export function NetChart({ months, summary }: NetChartProps) {
   const max = Math.max(...months.map((m) => Math.abs(m.net_cents)), 1);
   const height = (cents: number) => (cents === 0 ? 0 : Math.max(2, (Math.abs(cents) / max) * NET_HALF_HEIGHT));
   const hasNegative = months.some((m) => m.net_cents < 0);
+  const labels = useColumnLabels(months.length);
 
   return (
     <View accessible accessibilityRole="image" accessibilityLabel={summary} style={[styles.chart, { gap: 10 }]}>
-      <View style={[styles.plotSpaced, styles.netPlot]}>
-        {months.map((m) => {
+      <View onLayout={labels.onLayout} style={styles.netPlot}>
+        {months.map((m, index) => {
           const saved = m.net_cents >= 0;
           return (
-            <View key={m.label} style={styles.monthColumn}>
+            <View key={index} style={[styles.monthColumn, labels.column]}>
               <View style={styles.netHalf}>
                 {saved && <View style={[styles.netBar, styles.netUp, styles.saved, m.in_progress && styles.inProgress, { height: height(m.net_cents) }]} />}
               </View>
@@ -130,7 +160,7 @@ export function NetChart({ months, summary }: NetChartProps) {
               <View style={[styles.netHalf, styles.netHalfDown]}>
                 {!saved && <View style={[styles.netBar, styles.netDown, styles.overspent, m.in_progress && styles.inProgress, { height: height(m.net_cents) }]} />}
               </View>
-              <Text style={[type.bodySmall, styles.secondary]}>{m.label}</Text>
+              <ColumnLabel text={m.label} shown={labels.shown(index)} />
             </View>
           );
         })}
@@ -183,9 +213,10 @@ const styles = themed(() => ({
   flex: { flex: 1 },
   chart: { gap: spacing[8], alignSelf: 'stretch' },
   plot: { flexDirection: 'row', alignItems: 'flex-end', overflow: 'hidden' },
-  plotSpaced: { justifyContent: 'space-between' },
-  column: { flex: 1, alignItems: 'center', gap: 6 },
-  spendingBar: { width: 36, borderTopLeftRadius: 6, borderTopRightRadius: 6 },
+  // Columns share the width equally; bars take a share of their column, capped at the design width.
+  column: { flex: 1, minWidth: 0, alignItems: 'center', gap: 6 },
+  columnLabel: { textAlign: 'center' },
+  spendingBar: { width: '62%', maxWidth: 36, borderTopLeftRadius: 6, borderTopRightRadius: 6 },
   actualBar: { backgroundColor: color.brand.primary },
   predictedBar: {
     backgroundColor: color.feedback.infoSubtle,
@@ -194,17 +225,17 @@ const styles = themed(() => ({
     borderColor: color.finance.predicted,
   },
   thinDashed: { borderWidth: 1 },
-  monthColumn: { alignItems: 'center', gap: 6 },
-  barPair: { flexDirection: 'row', alignItems: 'flex-end', gap: 3 },
-  pairBar: { width: 14, borderTopLeftRadius: 4, borderTopRightRadius: 4 },
+  monthColumn: { flex: 1, minWidth: 0, alignItems: 'center', gap: 6 },
+  barPair: { width: '72%', maxWidth: 31, flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
+  pairBar: { flex: 1, maxWidth: 14, borderTopLeftRadius: 4, borderTopRightRadius: 4 },
   income: { backgroundColor: color.finance.remaining },
   expense: { backgroundColor: color.finance.spending },
   inProgress: { opacity: 0.4 },
   netPlot: { flexDirection: 'row', alignItems: 'flex-start' },
-  netHalf: { height: NET_HALF_HEIGHT, justifyContent: 'flex-end', alignItems: 'center' },
+  netHalf: { alignSelf: 'stretch', height: NET_HALF_HEIGHT, justifyContent: 'flex-end', alignItems: 'center' },
   netHalfDown: { justifyContent: 'flex-start' },
-  netBaseline: { alignSelf: 'stretch', height: 1, minWidth: 22, backgroundColor: color.border.default },
-  netBar: { width: 18 },
+  netBaseline: { alignSelf: 'stretch', height: 1, backgroundColor: color.border.default },
+  netBar: { width: '55%', maxWidth: 18 },
   netUp: { borderTopLeftRadius: 4, borderTopRightRadius: 4 },
   netDown: { borderBottomLeftRadius: 4, borderBottomRightRadius: 4 },
   saved: { backgroundColor: color.finance.remaining },
