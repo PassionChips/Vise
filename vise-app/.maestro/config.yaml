@@ -1,0 +1,5 @@
+# Maestro workspace config. Run everything with:  maestro test .maestro
+# Flows in flows/ run in file-name order; each one wipes app data itself, so they are independent.
+# subflows/ holds shared steps and is not run on its own.
+flows:
+  - flows/*.yaml

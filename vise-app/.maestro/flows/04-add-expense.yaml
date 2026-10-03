@@ -1,0 +1,20 @@
+appId: com.reborn_lvl.viseapp
+name: Add an expense and see it on every screen
+tags: [smoke, transactions]
+---
+- runFlow: ../subflows/onboard.yaml
+- runFlow:
+    file: ../subflows/add-expense.yaml
+    env:
+      DESC: "Maestro Lunch"
+      AMOUNT: "12.50"
+      CATEGORY: "Food & Dining"
+
+# Shows in the Transactions list, with the count updated (onboarding one + this one)
+- tapOn: "Transactions"
+- assertVisible: ".*Maestro Lunch.*"
+- assertVisible: "2 transactions"
+
+# invalidateData() refreshed the dashboard too
+- tapOn: "Dashboard"
+- assertVisible: ".*Maestro Lunch.*"

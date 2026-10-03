@@ -1,0 +1,12 @@
+appId: com.reborn_lvl.viseapp
+name: Every bottom tab opens
+tags: [smoke]
+---
+- runFlow: ../subflows/onboard.yaml
+- assertVisible: "Dashboard"
+- runFlow: { file: ../subflows/open-tab.yaml, env: { TAB: Transactions } }
+- runFlow: { file: ../subflows/open-tab.yaml, env: { TAB: Budgets } }
+- runFlow: { file: ../subflows/open-tab.yaml, env: { TAB: Reports } }
+- runFlow: { file: ../subflows/open-tab.yaml, env: { TAB: Settings } }
+- tapOn: "Dashboard"
+- assertVisible: "Recent transactions"

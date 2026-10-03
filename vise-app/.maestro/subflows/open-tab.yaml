@@ -1,0 +1,5 @@
+# Usage: runFlow: { file: ../subflows/open-tab.yaml, env: { TAB: Budgets } }
+appId: com.reborn_lvl.viseapp
+---
+- tapOn: ${TAB}
+- assertVisible: ${TAB}

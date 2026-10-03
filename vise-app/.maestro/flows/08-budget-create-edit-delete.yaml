@@ -1,0 +1,44 @@
+appId: com.reborn_lvl.viseapp
+name: Budget create, edit, delete
+tags: [budgets]
+---
+- runFlow: ../subflows/onboard.yaml
+- tapOn: "Budgets"
+- assertVisible: "By category"
+- assertVisible: "Groceries.*"          # created by onboarding
+
+# Create
+- tapOn: "Create budget"
+- assertVisible: "New budget"
+- tapOn: "Category.*"
+- tapOn: "Transport"
+- tapOn: "Monthly limit"
+- inputText: "150"
+- hideKeyboard
+- tapOn: "Create budget"
+- assertVisible: "Transport.*"
+
+# Validation: no limit entered
+- tapOn: "Create budget"
+- tapOn: "Category.*"
+- tapOn: "Health"
+- tapOn: "Create budget"
+- assertVisible: ".*need.* fixing"
+- tapOn: "Close"
+
+# Edit
+- tapOn: "Transport.*"
+- assertVisible: "Edit budget"
+- tapOn: "Monthly limit"
+- eraseText: 10
+- inputText: "250"
+- hideKeyboard
+- tapOn: "Save changes"
+- assertVisible: "Transport.*"
+
+# Delete
+- tapOn: "Transport.*"
+- tapOn: "Delete budget"
+- assertVisible: "Delete this budget?"
+- tapOn: "Delete"
+- assertNotVisible: "Transport.*"

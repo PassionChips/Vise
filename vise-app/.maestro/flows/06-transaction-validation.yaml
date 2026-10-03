@@ -1,0 +1,29 @@
+appId: com.reborn_lvl.viseapp
+name: Bad input is rejected and nothing is saved
+tags: [transactions, validation]
+---
+- runFlow: ../subflows/onboard.yaml
+- tapOn: "Transactions"
+- tapOn: "Add transaction"
+- assertVisible: "Add expense"
+
+# Empty form: client-side errors
+- tapOn: "Save expense"
+- assertVisible: ".*need.* fixing"
+- assertVisible: "Enter a description"
+- assertVisible: "Choose a category"
+
+# Invalid amount: rejected by rust-core (parse_amount_cents), so the form stays open
+- tapOn: "Amount"
+- inputText: "abc"
+- tapOn: "Description"
+- inputText: "Should not save"
+- hideKeyboard
+- tapOn: "Category.*"
+- tapOn: "Groceries"
+- tapOn: "Save expense"
+- assertVisible: "Add expense"
+
+# Close without saving: nothing was written
+- tapOn: "Close"
+- assertNotVisible: ".*Should not save.*"
