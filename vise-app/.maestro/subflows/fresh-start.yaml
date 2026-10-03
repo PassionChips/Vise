@@ -1,0 +1,6 @@
+# Wipes app data (this deletes vise.db, so rust-core starts empty) and opens the app.
+appId: com.reborn_lvl.viseapp
+---
+- launchApp:
+    clearState: true
+    stopApp: true

@@ -1,0 +1,32 @@
+appId: com.reborn_lvl.viseapp
+name: Search, delete and undo a transaction
+tags: [transactions]
+---
+- runFlow: ../subflows/onboard.yaml
+- runFlow:
+    file: ../subflows/add-expense.yaml
+    env: { DESC: "Maestro Taxi", AMOUNT: "20", CATEGORY: "Transport" }
+
+# Search narrows the list
+- tapOn: "Search transactions"
+- inputText: "Taxi"
+- hideKeyboard
+- assertVisible: ".*Maestro Taxi.*"
+- assertNotVisible: ".*Onboarding coffee.*"
+- inputText: "zzzz"
+- assertVisible: "Nothing matches"
+- eraseText: 10
+
+# Delete (tap a row), confirm, then undo
+- tapOn: ".*Maestro Taxi.*"
+- assertVisible: "Delete this transaction?"
+- tapOn: "Delete"
+- assertVisible: "Transaction deleted"
+- assertNotVisible: ".*Maestro Taxi.*"
+- tapOn: "Undo"
+- assertVisible: ".*Maestro Taxi.*"
+
+# Delete again for good
+- tapOn: ".*Maestro Taxi.*"
+- tapOn: "Delete"
+- assertNotVisible: ".*Maestro Taxi.*"

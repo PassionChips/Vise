@@ -1,0 +1,23 @@
+appId: com.reborn_lvl.viseapp
+name: Onboarding, skip every optional step
+tags: [onboarding]
+---
+- runFlow: ../subflows/fresh-start.yaml
+- tapOn: "Get started"
+- assertVisible: "Choose your currency"
+- tapOn: "Skip"
+- assertVisible: "What comes in each month?"
+- tapOn: "Skip"
+- assertVisible: "Pick a category to budget"
+- tapOn: "Skip"
+- assertVisible: "Set a monthly limit for .*"
+- tapOn: "Skip"
+- assertVisible: "Add your first transaction"
+# Skipping the last step saves with no transaction
+- tapOn: "Skip"
+- assertVisible: "You’re all set.*"
+- assertVisible: "None yet"
+- assertVisible: "Not set"
+- tapOn: "Go to dashboard"
+- assertVisible: "Dashboard"
+- assertVisible: "No transactions this month"

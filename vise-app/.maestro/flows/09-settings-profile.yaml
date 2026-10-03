@@ -1,0 +1,21 @@
+appId: com.reborn_lvl.viseapp
+name: Settings shows what onboarding saved; edit name
+tags: [settings]
+---
+- runFlow: ../subflows/onboard.yaml
+- tapOn: "Settings"
+- assertVisible: "Stored on this device"
+- assertVisible: "INR.*"
+- assertVisible: "₹5,000.00"
+- assertVisible: "Salary"
+- assertVisible: "80%"
+- assertVisible: "On this device only"
+
+# Edit name
+- tapOn: "Edit name"
+- assertVisible: "Your name"
+- tapOn: "Name"
+- inputText: "Maestro Tester"
+- hideKeyboard
+- tapOn: "Save"
+- assertVisible: "Maestro Tester"
