@@ -1,0 +1,16 @@
+# Adds an expense from the Transactions tab "+" button.
+# Env: DESC (description), AMOUNT (e.g. 12.50), CATEGORY (e.g. Groceries)
+appId: com.reborn_lvl.viseapp
+---
+- tapOn: "Transactions"
+- tapOn: "Add transaction"
+- assertVisible: "Add expense"
+- tapOn: "Amount"
+- inputText: ${AMOUNT}
+- tapOn: "Description"
+- inputText: ${DESC}
+- hideKeyboard
+- tapOn: "Category.*"
+- tapOn: ${CATEGORY}
+- tapOn: "Save expense"
+- assertVisible: ".*${DESC}.*"

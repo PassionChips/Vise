@@ -1,0 +1,30 @@
+appId: com.reborn_lvl.viseapp
+name: Export CSV, then delete all data and return to onboarding
+tags: [settings, data]
+---
+- runFlow: ../subflows/onboard.yaml
+- tapOn: "Settings"
+- scrollUntilVisible:
+    element: "Export data (CSV)"
+
+# Export
+- tapOn: "Export data (CSV)"
+- assertVisible: "Export ready"
+
+# Delete everything
+- scrollUntilVisible:
+    element: "Delete all my data"
+- tapOn: "Delete all my data"
+- assertVisible: "Delete all your data?"
+- assertVisible: "Download your data first"
+
+# Cancel keeps data
+- tapOn: "Cancel"
+- assertNotVisible: "Delete all your data?"
+
+# Confirm
+- tapOn: "Delete all my data"
+- tapOn: "Delete everything"
+
+# rust-core wiped the database, so the app is back at onboarding
+- assertVisible: "Get started"

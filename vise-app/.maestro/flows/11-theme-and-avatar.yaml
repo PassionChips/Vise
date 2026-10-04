@@ -1,0 +1,24 @@
+appId: com.reborn_lvl.viseapp
+name: Theme and avatar persist (these call updateSettings with theme/avatar)
+tags: [settings, regression]
+---
+# Regression: a stale librust_core.so rejects `theme` / `avatar` with
+# "Invalid payload: unknown field". If this flow fails with "Not saved" / "Avatar not saved",
+# rebuild the core: scripts/build-android-core.sh, then reinstall the app.
+- runFlow: ../subflows/onboard.yaml
+- tapOn: "Settings"
+
+- tapOn: "Dark"
+- assertNotVisible: "Not saved"
+- tapOn: "Light"
+- assertNotVisible: "Not saved"
+- tapOn: "System"
+- assertNotVisible: "Not saved"
+
+- tapOn: "Choose avatar"
+- assertVisible: "Choose an avatar"
+- tapOn: "Cat avatar"
+- assertNotVisible: "Avatar not saved"
+- tapOn: "Choose avatar"
+- tapOn: "Use my initials"
+- assertNotVisible: "Avatar not saved"
