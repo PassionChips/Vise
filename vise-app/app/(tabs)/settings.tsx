@@ -8,6 +8,7 @@ import {
   Pencil,
   Trash2,
   TriangleAlert,
+  Upload,
   User,
   Wallet,
 } from 'lucide-react-native';
@@ -307,6 +308,7 @@ function DataSection() {
           value="CSV"
           onPress={exporting ? undefined : exportFromRow}
         />
+        <SettingsRow type="navigation" icon={Upload} label="Import data (CSV)" value="CSV" onPress={() => router.push('/import')} />
         <SettingsRow type="destructive" icon={Trash2} label="Delete all my data" onPress={openConfirm} />
       </SettingsGroup>
       {status && <Alert type={status.kind} title={status.title} description={status.description} />}

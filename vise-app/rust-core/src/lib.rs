@@ -7,7 +7,8 @@
 //! - `repository`   one module of CRUD queries per table
 //! - `models`       Rust structs mirroring the database rows
 //! - `db`           connection setup, migrations and the generated schema
-//! - `parser`       CSV import
+//! - `parser`       CSV import (fixed columns, used by the developer binary)
+//! - `importer`     import of any CSV: detects columns, dates and amounts, previews, then saves
 //! - `ffi`          native entry points used by the Expo module (Android JNI, C ABI)
 //!
 //! Shared helpers: `error` (AppError), `money` (amount parsing),
@@ -18,6 +19,7 @@ pub mod calculations;
 pub mod db;
 pub mod error;
 pub mod ffi;
+pub mod importer;
 pub mod models;
 pub mod money;
 pub mod month;

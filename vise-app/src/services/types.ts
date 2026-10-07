@@ -244,6 +244,143 @@ export interface DeletedCounts {
   budgets: number;
 }
 
+// ----- Import -----
+
+/** Column numbers (0-based) as listed in `ImportPreview.columns`. `null` = no such column. */
+export interface ImportMapping {
+  date: number | null;
+  description: number | null;
+  amount: number | null;
+  debit: number | null;
+  credit: number | null;
+  transaction_type: number | null;
+  currency: number | null;
+  category: number | null;
+}
+
+export type ImportMappingField = keyof ImportMapping;
+
+export type ImportDateOrder = 'dmy' | 'mdy' | 'ymd';
+export type ImportDecimalSeparator = 'dot' | 'comma';
+
+/** Same input for the preview and the save, so the user sees exactly what will be stored. */
+export interface ImportInput {
+  /** The text of the CSV file. */
+  content: string;
+  /** Today, YYYY-MM-DD: the date for rows when the file has none. */
+  today: string;
+  /** Currency for rows without one. */
+  default_currency: string;
+  /** Columns the user chose, overriding what was detected. */
+  mapping?: Partial<ImportMapping>;
+  /** Fields the file does not have, to switch off a wrong detection. */
+  no_columns?: ImportMappingField[];
+  date_order?: ImportDateOrder;
+  decimal_separator?: ImportDecimalSeparator;
+  /** What a positive amount means when the file does not say. */
+  positive_is?: 'income' | 'expense';
+  /** Default true. */
+  skip_duplicates?: boolean;
+  /** One choice per group in `ImportPreview.groups`. Groups left out are saved uncategorized. */
+  categories?: ImportCategoryChoice[];
+}
+
+/** The user's decision for one group. With neither field set the group stays uncategorized. */
+export interface ImportCategoryChoice {
+  /** `ImportGroup.key`. */
+  group: string;
+  /** An existing category... */
+  category_id?: number;
+  /** ...or the name of one to create (an existing one with that name is reused). Not both. */
+  new_category?: string;
+}
+
+export interface ImportSuggestion {
+  /** The existing category; null if the file names one that does not exist yet. */
+  category_id: number | null;
+  name: string;
+  source: 'file' | 'history';
+  /** Applying it creates the category. */
+  is_new: boolean;
+}
+
+/** Expense and refund rows that share a merchant, or the category named in the file. */
+export interface ImportGroup {
+  key: string;
+  kind: 'merchant' | 'file_category';
+  /** Show this: the most common description, or the category name from the file. */
+  label: string;
+  rows: number;
+  total_cents: number;
+  suggestion: ImportSuggestion | null;
+}
+
+export interface ImportColumn {
+  index: number;
+  name: string;
+  example: string;
+}
+
+export interface ImportRowError {
+  row: number;
+  message: string;
+}
+
+export interface ImportStats {
+  rows_in_file: number;
+  /** Rows that will be saved. */
+  ready: number;
+  duplicates: number;
+  /** Totals, notes and empty rows left out; not errors. */
+  skipped: number;
+  errors: number;
+  dated: number;
+  filled_from_above: number;
+  filled_from_below: number;
+  filled_with_import_date: number;
+}
+
+export interface ImportSampleRow {
+  row: number;
+  date: string;
+  date_source: 'file' | 'above' | 'below' | 'import_day';
+  description: string;
+  amount_cents: number;
+  currency: string;
+  transaction_type: TransactionType;
+  duplicate: boolean;
+}
+
+export interface ImportPreview {
+  header_row: number | null;
+  columns: ImportColumn[];
+  mapping: ImportMapping;
+  date_order: ImportDateOrder;
+  date_order_ambiguous: boolean;
+  decimal_separator: ImportDecimalSeparator;
+  decimal_ambiguous: boolean;
+  positive_is: 'income' | 'expense';
+  stats: ImportStats;
+  warnings: string[];
+  /** The first 100 row errors; `stats.errors` is the full count. */
+  errors: ImportRowError[];
+  sample: ImportSampleRow[];
+  /** Biggest spending first. Income and transfers are not grouped. */
+  groups: ImportGroup[];
+}
+
+export interface ImportSummary {
+  inserted: number;
+  duplicates: number;
+  skipped: number;
+  error_count: number;
+  errors: ImportRowError[];
+  filled_dates: number;
+  /** Rows saved with a category. */
+  categorized: number;
+  categories_created: number;
+}
+
 // ----- Errors -----
 
 export type ErrorKind = 'validation' | 'not_found' | 'invalid_request' | 'database' | 'bridge_unavailable';

@@ -37,6 +37,9 @@ import type {
   UpdateTransactionInput,
   Prediction,
   Transaction,
+  ImportInput,
+  ImportPreview,
+  ImportSummary,
 } from './types';
 
 /** Shape of the native module (modules/vise-core). */
@@ -168,3 +171,11 @@ export const getSpendingTrend = (month: string, currency: string, months: number
 /** Predicts spending for `month` from the months before it. */
 export const predictSpending = (month: string, currency: string) =>
   call<Prediction>('predictSpending', { month, currency });
+
+// ----- Import -----
+
+/** Reads a CSV of any layout and reports what an import would do. Writes nothing. */
+export const previewImport = (input: ImportInput) => call<ImportPreview>('previewImport', input);
+
+/** Saves the rows `previewImport` showed, in one database transaction. */
+export const commitImport = (input: ImportInput) => mutate<ImportSummary>('commitImport', input);
