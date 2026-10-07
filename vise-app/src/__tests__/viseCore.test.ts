@@ -5,7 +5,7 @@ const native = vi.hoisted(() => ({ module: null as null | { call: (m: string, p:
 vi.mock('expo', () => ({ requireOptionalNativeModule: () => native.module }));
 
 import { subscribeToInvalidation } from '../data/store';
-import { addTransaction, getSettings, ViseError } from '../services/viseCore';
+import { addTransaction, commitImport, getSettings, previewImport, ViseError } from '../services/viseCore';
 
 const reply = (value: object) => JSON.stringify(value);
 
@@ -60,5 +60,19 @@ describe('viseCore bridge client', () => {
       addTransaction({ transaction_type: 'expense', amount: '1', currency: 'EUR', description: 'x', date: '2026-09-01' }),
     ).rejects.toMatchObject({ kind: 'bridge_unavailable' });
     expect(invalidations).toBe(0);
+  });
+
+  it('previewImport sends the file and options and does not invalidate; commitImport does', async () => {
+    const call = vi.fn().mockResolvedValue(reply({ ok: true, data: {} }));
+    native.module = { call };
+    const input = { content: 'Date,Amount\n2026-09-01,-1', today: '2026-10-07', default_currency: 'EUR', date_order: 'dmy' as const };
+
+    await previewImport(input);
+    expect(call).toHaveBeenCalledWith('previewImport', JSON.stringify(input));
+    expect(invalidations).toBe(0);
+
+    await commitImport(input);
+    expect(call).toHaveBeenLastCalledWith('commitImport', JSON.stringify(input));
+    expect(invalidations).toBe(1);
   });
 });

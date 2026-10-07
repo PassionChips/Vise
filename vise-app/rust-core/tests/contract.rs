@@ -82,4 +82,35 @@ fn reply_shapes_match_the_contract() {
         json!({ "confirm": "DELETE" }),
     );
     assert_eq!(keys(&deleted), expected("DeletedCounts"));
+
+    // History for the group suggestion: "x" was filed under Groceries before.
+    let groceries = call(
+        &mut connection,
+        "addCategory",
+        json!({ "name": "Groceries" }),
+    );
+    call(
+        &mut connection,
+        "addTransaction",
+        json!({ "transaction_type": "expense", "amount": "5", "currency": "EUR",
+            "description": "x", "date": "2026-08-01", "expense_category_id": groceries["id"] }),
+    );
+    let import = json!({
+        "content": "Date,Description,Amount\n2026-09-02,x,-9.00\n",
+        "today": "2026-10-04",
+        "default_currency": "EUR"
+    });
+    let preview = call(&mut connection, "previewImport", import.clone());
+    assert_eq!(keys(&preview), expected("ImportPreview"));
+    assert_eq!(keys(&preview["mapping"]), expected("ImportMapping"));
+    assert_eq!(keys(&preview["stats"]), expected("ImportStats"));
+    assert_eq!(keys(&preview["sample"][0]), expected("ImportSampleRow"));
+    // "x" was filed under Groceries above, so the group carries a suggestion.
+    assert_eq!(keys(&preview["groups"][0]), expected("ImportGroup"));
+    assert_eq!(
+        keys(&preview["groups"][0]["suggestion"]),
+        expected("ImportSuggestion")
+    );
+    let saved = call(&mut connection, "commitImport", import);
+    assert_eq!(keys(&saved), expected("ImportSummary"));
 }

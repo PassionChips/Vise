@@ -17,6 +17,7 @@ use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 
 use crate::error::{AppError, ErrorBody};
+use crate::importer;
 use crate::service;
 
 #[derive(Deserialize)]
@@ -129,6 +130,8 @@ fn handle(
                 p.months,
             ))
         }
+        "previewImport" => to_json(importer::preview(connection, &parse(payload)?)),
+        "commitImport" => to_json(importer::commit(connection, &parse(payload)?)),
         "predictSpending" => {
             let p: MonthCurrencyPayload = parse(payload)?;
             to_json(service::predict_spending(connection, &p.month, &p.currency))
@@ -186,6 +189,50 @@ mod tests {
                 .len(),
             1
         );
+    }
+
+    #[test]
+    fn import_methods_preview_then_save_through_json() {
+        let mut connection = establish_connection_test().unwrap();
+        let payload = serde_json::json!({
+            "content": "Date,Description,Amount\n2026-09-01,Lunch,-12.50\n",
+            "today": "2026-10-07",
+            "default_currency": "EUR"
+        })
+        .to_string();
+
+        let preview = call(&mut connection, "previewImport", &payload);
+        assert_eq!(preview["ok"], true);
+        assert_eq!(preview["data"]["stats"]["ready"], 1);
+        assert_eq!(
+            call(
+                &mut connection,
+                "listTransactions",
+                r#"{"month":"2026-09"}"#
+            )["data"]
+                .as_array()
+                .unwrap()
+                .len(),
+            0
+        );
+
+        let saved = call(&mut connection, "commitImport", &payload);
+        assert_eq!(saved["data"]["inserted"], 1);
+        assert_eq!(
+            call(
+                &mut connection,
+                "listTransactions",
+                r#"{"month":"2026-09"}"#
+            )["data"][0]["description"],
+            "Lunch"
+        );
+
+        let typo = call(
+            &mut connection,
+            "commitImport",
+            r#"{"content":"x","today":"2026-10-07","default_currency":"EUR","colunm":1}"#,
+        );
+        assert_eq!(typo["error"]["kind"], "invalid_request");
     }
 
     #[test]

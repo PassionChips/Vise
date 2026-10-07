@@ -7,6 +7,13 @@ import type {
   CsvExport,
   DataOverview,
   DeletedCounts,
+  ImportGroup,
+  ImportMapping,
+  ImportPreview,
+  ImportSampleRow,
+  ImportSuggestion,
+  ImportStats,
+  ImportSummary,
   MonthlySummary,
   Settings,
   Transaction,
@@ -90,6 +97,78 @@ const transaction: Transaction = {
   updated_at: 0,
 };
 
+const importMapping: ImportMapping = {
+  date: null,
+  description: null,
+  amount: null,
+  debit: null,
+  credit: null,
+  transaction_type: null,
+  currency: null,
+  category: null,
+};
+
+const importStats: ImportStats = {
+  rows_in_file: 0,
+  ready: 0,
+  duplicates: 0,
+  skipped: 0,
+  errors: 0,
+  dated: 0,
+  filled_from_above: 0,
+  filled_from_below: 0,
+  filled_with_import_date: 0,
+};
+
+const importSample: ImportSampleRow = {
+  row: 2,
+  date: '2026-09-01',
+  date_source: 'file',
+  description: 'x',
+  amount_cents: 1,
+  currency: 'EUR',
+  transaction_type: 'expense',
+  duplicate: false,
+};
+
+const importSuggestion: ImportSuggestion = { category_id: 1, name: 'Groceries', source: 'history', is_new: false };
+
+const importGroup: ImportGroup = {
+  key: 'm:lidl',
+  kind: 'merchant',
+  label: 'Lidl',
+  rows: 1,
+  total_cents: 1,
+  suggestion: importSuggestion,
+};
+
+const importPreview: ImportPreview = {
+  header_row: 1,
+  columns: [],
+  mapping: importMapping,
+  date_order: 'dmy',
+  date_order_ambiguous: false,
+  decimal_separator: 'dot',
+  decimal_ambiguous: false,
+  positive_is: 'expense',
+  stats: importStats,
+  warnings: [],
+  errors: [],
+  sample: [importSample],
+  groups: [importGroup],
+};
+
+const importSummary: ImportSummary = {
+  inserted: 0,
+  duplicates: 0,
+  skipped: 0,
+  error_count: 0,
+  errors: [],
+  filled_dates: 0,
+  categorized: 0,
+  categories_created: 0,
+};
+
 const contract = JSON.parse(
   readFileSync(resolve(__dirname, '../../rust-core/contracts/api-shapes.json'), 'utf8'),
 ) as Record<string, string[]>;
@@ -104,4 +183,11 @@ describe('TypeScript types match the rust-core JSON contract', () => {
   it('DataOverview', () => expect(sorted(overview)).toEqual(contract.DataOverview));
   it('CsvExport', () => expect(sorted(csvExport)).toEqual(contract.CsvExport));
   it('DeletedCounts', () => expect(sorted(deleted)).toEqual(contract.DeletedCounts));
+  it('ImportPreview', () => expect(sorted(importPreview)).toEqual(contract.ImportPreview));
+  it('ImportMapping', () => expect(sorted(importMapping)).toEqual(contract.ImportMapping));
+  it('ImportStats', () => expect(sorted(importStats)).toEqual(contract.ImportStats));
+  it('ImportSampleRow', () => expect(sorted(importSample)).toEqual(contract.ImportSampleRow));
+  it('ImportGroup', () => expect(sorted(importGroup)).toEqual(contract.ImportGroup));
+  it('ImportSuggestion', () => expect(sorted(importSuggestion)).toEqual(contract.ImportSuggestion));
+  it('ImportSummary', () => expect(sorted(importSummary)).toEqual(contract.ImportSummary));
 });

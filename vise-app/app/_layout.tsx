@@ -54,6 +54,7 @@ function ThemedStack() {
         <Stack.Screen name="add-transaction" options={{ presentation: 'modal' }} />
         <Stack.Screen name="budget-form" options={{ presentation: 'modal' }} />
         <Stack.Screen name="edit-setting" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="import" options={{ presentation: 'modal' }} />
       </Stack>
     </>
   );

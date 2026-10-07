@@ -11,9 +11,24 @@
     "theme",
     "warning_threshold_percent"
   ],
-  "DataOverview": ["budgets", "categories", "income_sources", "transactions"],
-  "CsvExport": ["budget_count", "csv", "filename", "transaction_count"],
-  "DeletedCounts": ["budgets", "categories", "income_sources", "transactions"],
+  "DataOverview": [
+    "budgets",
+    "categories",
+    "income_sources",
+    "transactions"
+  ],
+  "CsvExport": [
+    "budget_count",
+    "csv",
+    "filename",
+    "transaction_count"
+  ],
+  "DeletedCounts": [
+    "budgets",
+    "categories",
+    "income_sources",
+    "transactions"
+  ],
   "MonthlySummary": [
     "budgeted_spent_cents",
     "categories",
@@ -63,5 +78,75 @@
     "status",
     "transaction_type",
     "updated_at"
+  ],
+  "ImportPreview": [
+    "columns",
+    "date_order",
+    "date_order_ambiguous",
+    "decimal_ambiguous",
+    "decimal_separator",
+    "errors",
+    "groups",
+    "header_row",
+    "mapping",
+    "positive_is",
+    "sample",
+    "stats",
+    "warnings"
+  ],
+  "ImportMapping": [
+    "amount",
+    "category",
+    "credit",
+    "currency",
+    "date",
+    "debit",
+    "description",
+    "transaction_type"
+  ],
+  "ImportStats": [
+    "dated",
+    "duplicates",
+    "errors",
+    "filled_from_above",
+    "filled_from_below",
+    "filled_with_import_date",
+    "ready",
+    "rows_in_file",
+    "skipped"
+  ],
+  "ImportSampleRow": [
+    "amount_cents",
+    "currency",
+    "date",
+    "date_source",
+    "description",
+    "duplicate",
+    "row",
+    "transaction_type"
+  ],
+  "ImportSummary": [
+    "categories_created",
+    "categorized",
+    "duplicates",
+    "error_count",
+    "errors",
+    "filled_dates",
+    "inserted",
+    "skipped"
+  ],
+  "ImportGroup": [
+    "key",
+    "kind",
+    "label",
+    "rows",
+    "suggestion",
+    "total_cents"
+  ],
+  "ImportSuggestion": [
+    "category_id",
+    "is_new",
+    "name",
+    "source"
   ]
 }
