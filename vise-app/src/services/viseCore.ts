@@ -40,6 +40,8 @@ import type {
   ImportInput,
   ImportPreview,
   ImportSummary,
+  ReceiptInput,
+  ReceiptScan,
 } from './types';
 
 /** Shape of the native module (modules/vise-core). */
@@ -179,3 +181,8 @@ export const previewImport = (input: ImportInput) => call<ImportPreview>('previe
 
 /** Saves the rows `previewImport` showed, in one database transaction. */
 export const commitImport = (input: ImportInput) => mutate<ImportSummary>('commitImport', input);
+
+// ----- Receipts -----
+
+/** Works out the total, date, merchant and currency from OCR lines. Reads stored history to suggest a category. */
+export const parseReceipt = (input: ReceiptInput) => call<ReceiptScan>('parseReceipt', input);

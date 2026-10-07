@@ -15,7 +15,9 @@ import type {
   ImportStats,
   ImportSummary,
   MonthlySummary,
+  ReceiptScan,
   Settings,
+  TotalCandidate,
   Transaction,
 } from '../services/types';
 
@@ -169,6 +171,18 @@ const importSummary: ImportSummary = {
   categories_created: 0,
 };
 
+const totalCandidate: TotalCandidate = { amount_cents: 1, line: 'TOTAL 0.01', confidence: 'total' };
+
+const receiptScan: ReceiptScan = {
+  merchant: 'Shop',
+  date: '2026-09-01',
+  totals: [totalCandidate],
+  currency: 'EUR',
+  currency_found: false,
+  suggestion: importSuggestion,
+  warnings: [],
+};
+
 const contract = JSON.parse(
   readFileSync(resolve(__dirname, '../../rust-core/contracts/api-shapes.json'), 'utf8'),
 ) as Record<string, string[]>;
@@ -189,5 +203,7 @@ describe('TypeScript types match the rust-core JSON contract', () => {
   it('ImportSampleRow', () => expect(sorted(importSample)).toEqual(contract.ImportSampleRow));
   it('ImportGroup', () => expect(sorted(importGroup)).toEqual(contract.ImportGroup));
   it('ImportSuggestion', () => expect(sorted(importSuggestion)).toEqual(contract.ImportSuggestion));
+  it('ReceiptScan', () => expect(sorted(receiptScan)).toEqual(contract.ReceiptScan));
+  it('TotalCandidate', () => expect(sorted(totalCandidate)).toEqual(contract.TotalCandidate));
   it('ImportSummary', () => expect(sorted(importSummary)).toEqual(contract.ImportSummary));
 });

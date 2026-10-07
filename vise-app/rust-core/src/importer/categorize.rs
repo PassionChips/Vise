@@ -134,6 +134,62 @@ fn most_common(counts: &HashMap<String, usize>) -> String {
         .unwrap_or_default()
 }
 
+/// The user's active categories and how each merchant was categorized before.
+struct History {
+    categories: HashMap<i32, String>,
+    /// merchant key -> category id -> number of transactions.
+    by_merchant: HashMap<String, HashMap<i32, usize>>,
+}
+
+fn load_history(connection: &mut SqliteConnection) -> Result<History, AppError> {
+    let categories: HashMap<i32, String> = expense_category_repository::get_all(connection)?
+        .into_iter()
+        .filter(|c| c.is_active)
+        .filter_map(|c| c.id.map(|id| (id, c.name)))
+        .collect();
+    let mut by_merchant: HashMap<String, HashMap<i32, usize>> = HashMap::new();
+    for t in transaction_repository::get_all(connection)? {
+        if let Some(category) = t.expense_category_id.filter(|c| categories.contains_key(c)) {
+            *by_merchant
+                .entry(merchant_key(&t.description))
+                .or_default()
+                .entry(category)
+                .or_insert(0) += 1;
+        }
+    }
+    Ok(History {
+        categories,
+        by_merchant,
+    })
+}
+
+fn most_used(counts: &HashMap<i32, usize>) -> Option<i32> {
+    counts
+        .iter()
+        .max_by(|a, b| a.1.cmp(b.1).then(b.0.cmp(a.0)))
+        .map(|(id, _)| *id)
+}
+
+/// The category the user usually files this merchant under, if they have done so before.
+pub fn suggest_category(
+    connection: &mut SqliteConnection,
+    description: &str,
+) -> Result<Option<Suggestion>, AppError> {
+    let History {
+        categories,
+        by_merchant,
+    } = load_history(connection)?;
+    Ok(by_merchant
+        .get(&merchant_key(description))
+        .and_then(most_used)
+        .map(|id| Suggestion {
+            category_id: Some(id),
+            name: categories[&id].clone(),
+            source: "history",
+            is_new: false,
+        }))
+}
+
 /// One group per merchant or file category, biggest spending first.
 pub(super) fn build_groups(
     rows: &[Resolved],
@@ -157,27 +213,14 @@ pub(super) fn build_groups(
         return Ok(Vec::new());
     }
 
-    let categories: HashMap<i32, String> = expense_category_repository::get_all(connection)?
-        .into_iter()
-        .filter(|c| c.is_active)
-        .filter_map(|c| c.id.map(|id| (id, c.name)))
-        .collect();
+    let History {
+        categories,
+        by_merchant: history,
+    } = load_history(connection)?;
     let by_name: HashMap<String, (i32, &String)> = categories
         .iter()
         .map(|(id, name)| (name.to_lowercase(), (*id, name)))
         .collect();
-
-    // How the user categorized each merchant before: merchant -> category -> count.
-    let mut history: HashMap<String, HashMap<i32, usize>> = HashMap::new();
-    for t in transaction_repository::get_all(connection)? {
-        if let Some(category) = t.expense_category_id.filter(|c| categories.contains_key(c)) {
-            *history
-                .entry(merchant_key(&t.description))
-                .or_default()
-                .entry(category)
-                .or_insert(0) += 1;
-        }
-    }
 
     let mut groups: Vec<ImportGroup> = totals
         .into_iter()

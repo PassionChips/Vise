@@ -18,6 +18,7 @@ use serde_json::{Value, json};
 
 use crate::error::{AppError, ErrorBody};
 use crate::importer;
+use crate::receipt;
 use crate::service;
 
 #[derive(Deserialize)]
@@ -130,6 +131,7 @@ fn handle(
                 p.months,
             ))
         }
+        "parseReceipt" => to_json(receipt::parse(connection, &parse(payload)?)),
         "previewImport" => to_json(importer::preview(connection, &parse(payload)?)),
         "commitImport" => to_json(importer::commit(connection, &parse(payload)?)),
         "predictSpending" => {

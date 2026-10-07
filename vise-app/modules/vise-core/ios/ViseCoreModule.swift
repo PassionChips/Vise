@@ -1,5 +1,7 @@
 import ExpoModulesCore
 import Foundation
+import UIKit
+import Vision
 
 // C ABI exported by rust-core/src/ffi.rs
 @_silgen_name("vise_init")
@@ -9,7 +11,8 @@ private func vise_call(_ method: UnsafePointer<CChar>, _ payload: UnsafePointer<
 @_silgen_name("vise_free")
 private func vise_free(_ ptr: UnsafeMutablePointer<CChar>?)
 
-/// Forwards (method, payloadJson) to rust-core's `api::dispatch` and returns its JSON reply.
+/// Forwards (method, payloadJson) to rust-core's `api::dispatch` and returns its JSON reply, and
+/// reads text from a photo on the device (`recognizeText`) for receipt scanning.
 /// The database lives in Application Support, so it persists across app restarts.
 public class ViseCoreModule: Module {
   private let lock = NSLock()
@@ -38,6 +41,60 @@ public class ViseCoreModule: Module {
       guard let reply = vise_call(method, payload) else { return "" }
       defer { vise_free(reply) }
       return String(cString: reply)
+    }
+
+    // On-device OCR with Apple's Vision framework. Returns a JSON array of
+    // {text, left, top, right, bottom} (top-left origin, 0...1), one entry per line of text;
+    // rust-core joins the lines that sit on the same row. The photo never leaves the phone.
+    AsyncFunction("recognizeText") { (uri: String) -> String in
+      guard let url = URL(string: uri),
+        let data = try? Data(contentsOf: url),
+        let image = UIImage(data: data),
+        let cgImage = image.cgImage
+      else {
+        throw Exception(name: "ERR_OCR", description: "Could not open the photo.")
+      }
+
+      var lines: [[String: Any]] = []
+      let request = VNRecognizeTextRequest { request, _ in
+        for case let observation as VNRecognizedTextObservation in request.results ?? [] {
+          guard let candidate = observation.topCandidates(1).first else { continue }
+          let box = observation.boundingBox  // normalised, origin at the bottom left
+          lines.append([
+            "text": candidate.string,
+            "left": box.minX,
+            "top": 1 - box.maxY,
+            "right": box.maxX,
+            "bottom": 1 - box.minY,
+          ])
+        }
+      }
+      request.recognitionLevel = .accurate
+      request.usesLanguageCorrection = false
+
+      let handler = VNImageRequestHandler(
+        cgImage: cgImage, orientation: ViseCoreModule.orientation(of: image), options: [:])
+      do {
+        try handler.perform([request])
+        let json = try JSONSerialization.data(withJSONObject: lines)
+        return String(data: json, encoding: .utf8) ?? "[]"
+      } catch {
+        throw Exception(name: "ERR_OCR", description: "Could not read the photo: \(error.localizedDescription)")
+      }
+    }
+  }
+
+  private static func orientation(of image: UIImage) -> CGImagePropertyOrientation {
+    switch image.imageOrientation {
+    case .up: return .up
+    case .down: return .down
+    case .left: return .left
+    case .right: return .right
+    case .upMirrored: return .upMirrored
+    case .downMirrored: return .downMirrored
+    case .leftMirrored: return .leftMirrored
+    case .rightMirrored: return .rightMirrored
+    @unknown default: return .up
     }
   }
 }

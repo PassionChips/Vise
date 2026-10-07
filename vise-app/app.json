@@ -26,7 +26,15 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "microphonePermission": false,
+          "cameraPermission": "VISE uses the camera to read your receipts. The photo is read on your phone and never uploaded.",
+          "photosPermission": "VISE reads receipts you choose. The photo is read on your phone and never uploaded."
+        }
+      ]
     ]
   }
 }

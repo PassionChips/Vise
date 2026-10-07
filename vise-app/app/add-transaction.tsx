@@ -1,20 +1,23 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { X } from 'lucide-react-native';
+import { Camera, Image as ImageIcon, ScanLine, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Alert } from '../src/components/Alert';
-import { IconButton, PrimaryButton } from '../src/components/Buttons';
+import { IconButton, PrimaryButton, SecondaryButton } from '../src/components/Buttons';
 import { SegmentedControl } from '../src/components/Controls';
 import { AmountInput, DateField, SelectField, TextField } from '../src/components/Inputs';
+import { BottomSheet, SheetAction } from '../src/components/Overlays';
 import { QueryState } from '../src/components/QueryState';
 import { useFinance, type FinanceData } from '../src/data/finance';
+import { scanReceipt, type ReceiptSource } from '../src/data/receiptScan';
+import { ScanNotes } from '../src/features/receipt/ScanNotes';
 import { categoryOptions, resolveCategory, resolveSource, sourceOptions } from '../src/data/pickers';
 import { centsToAmount, currentMonth, isoFromUnix, todayIso } from '../src/format';
 import { currencyByCode, type CurrencyCode } from '../src/features/onboarding/data';
 import { addTransaction, listTransactions, updateTransaction, ViseError } from '../src/services/viseCore';
-import type { Transaction } from '../src/services/types';
+import type { ReceiptScan, Transaction } from '../src/services/types';
 import { useCoreQuery } from '../src/data/store';
 import { color, spacing, themed, type } from '../src/theme/tokens';
 import { useTheme } from '../src/theme/ThemeProvider';
@@ -41,7 +44,7 @@ function displayDate(iso: string) {
 /** Add (no params) or edit (?id=<transaction id>) a transaction. */
 export default function AddTransactionScreen() {
   useTheme();
-  const params = useLocalSearchParams<{ type?: string; id?: string }>();
+  const params = useLocalSearchParams<{ type?: string; id?: string; scan?: string }>();
   const editingId = params.id ? Number(params.id) : null;
   const finance = useFinance(currentMonth());
   // An edit can target any month, so look the transaction up by id across the stored months.
@@ -55,7 +58,14 @@ export default function AddTransactionScreen() {
       <QueryState query={finance}>
         {(data) => (
           <QueryState query={target}>
-            {(existing) => <Form data={data} existing={existing} initialIncome={params.type === 'income'} />}
+            {(existing) => (
+              <Form
+                data={data}
+                existing={existing}
+                initialIncome={params.type === 'income'}
+                autoScan={params.scan === 'camera' || params.scan === 'library' ? params.scan : undefined}
+              />
+            )}
           </QueryState>
         )}
       </QueryState>
@@ -75,9 +85,19 @@ async function findTransaction(id: number): Promise<Transaction | null> {
   return null;
 }
 
-function Form({ data, existing, initialIncome }: { data: FinanceData; existing: Transaction | null; initialIncome: boolean }) {
+function Form({
+  data,
+  existing,
+  initialIncome,
+  autoScan,
+}: {
+  data: FinanceData;
+  existing: Transaction | null;
+  initialIncome: boolean;
+  autoScan?: ReceiptSource;
+}) {
   const { settings, categories, sources } = data;
-  const currency = existing?.currency ?? settings.currency;
+  const [currency, setCurrency] = useState(existing?.currency ?? settings.currency);
   const symbol = currencyByCode(currency as CurrencyCode)?.symbol ?? currency;
   const [kind, setKind] = useState<Kind>(
     existing ? (existing.transaction_type === 'income' ? 'Income' : 'Expense') : initialIncome ? 'Income' : 'Expense',
@@ -93,7 +113,11 @@ function Form({ data, existing, initialIncome }: { data: FinanceData; existing: 
   );
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState(false);
-  const date = existing ? isoFromUnix(existing.occurred_at) : todayIso();
+  const [date, setDate] = useState(existing ? isoFromUnix(existing.occurred_at) : todayIso());
+  const [scan, setScan] = useState<ReceiptScan | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanSheet, setScanSheet] = useState(false);
 
   const expense = kind === 'Expense';
   const options = expense ? categoryOptions(categories) : sourceOptions(sources);
@@ -104,6 +128,35 @@ function Form({ data, existing, initialIncome }: { data: FinanceData; existing: 
     if (category && !options.some((o) => o.value === category)) setCategory(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind]);
+
+  /** Takes or chooses a photo of a receipt and fills the form from it. The user still checks and saves. */
+  async function runScan(source: ReceiptSource) {
+    setScanSheet(false);
+    setScanError(null);
+    setScanning(true);
+    try {
+      const result = await scanReceipt(source, { today: todayIso(), currency: settings.currency });
+      if (!result) return;
+      setScan(result);
+      setKind('Expense');
+      if (result.totals[0]) setAmount(centsToAmount(result.totals[0].amount_cents));
+      if (result.merchant) setDescription(result.merchant);
+      if (result.date) setDate(result.date);
+      setCurrency(result.currency);
+      if (result.suggestion?.category_id != null) setCategory(String(result.suggestion.category_id));
+      setErrors({});
+    } catch (error) {
+      setScanError(error instanceof Error ? error.message : 'Could not read the receipt. Try again.');
+    } finally {
+      setScanning(false);
+    }
+  }
+
+  // Opened from "Scan receipt" on the dashboard: go straight to the camera.
+  useEffect(() => {
+    if (autoScan && !existing) void runScan(autoScan);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function save() {
     const found: Errors = {};
@@ -152,6 +205,23 @@ function Form({ data, existing, initialIncome }: { data: FinanceData; existing: 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
           <SegmentedControl options={KINDS} value={kind} onChange={setKind} stretch accessibilityLabel="Transaction type" />
+
+          {!existing && expense && (
+            <SecondaryButton
+              label={scanning ? 'Reading receipt…' : 'Scan receipt'}
+              leadingIcon={ScanLine}
+              onPress={scanning ? undefined : () => setScanSheet(true)}
+            />
+          )}
+          {scanError && <Alert type="error" title="Couldn’t read the receipt" description={scanError} />}
+          {scan && (
+            <ScanNotes
+              scan={scan}
+              currency={currency}
+              chosenCents={Number(amount) > 0 ? Math.round(Number(amount) * 100) : null}
+              onPickAmount={(cents) => setAmount(centsToAmount(cents))}
+            />
+          )}
 
           {errors.form && <Alert type="error" title="Couldn’t save" description={errors.form} />}
           {errorKeys.length > 0 && (
@@ -205,6 +275,11 @@ function Form({ data, existing, initialIncome }: { data: FinanceData; existing: 
           />
         </View>
       </KeyboardAvoidingView>
+
+      <BottomSheet visible={scanSheet} title="Scan receipt" onClose={() => setScanSheet(false)}>
+        <SheetAction icon={Camera} title="Take a photo" subtitle="Lay the receipt flat in good light" onPress={() => runScan('camera')} />
+        <SheetAction icon={ImageIcon} title="Choose a photo" subtitle="Pick a receipt photo you already have" onPress={() => runScan('library')} />
+      </BottomSheet>
     </>
   );
 }

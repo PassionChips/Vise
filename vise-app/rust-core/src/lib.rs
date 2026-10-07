@@ -9,6 +9,7 @@
 //! - `db`           connection setup, migrations and the generated schema
 //! - `parser`       CSV import (fixed columns, used by the developer binary)
 //! - `importer`     import of any CSV: detects columns, dates and amounts, previews, then saves
+//! - `receipt`      reads a photographed receipt (OCR text) into a proposed expense
 //! - `ffi`          native entry points used by the Expo module (Android JNI, C ABI)
 //!
 //! Shared helpers: `error` (AppError), `money` (amount parsing),
@@ -24,5 +25,6 @@ pub mod models;
 pub mod money;
 pub mod month;
 pub mod parser;
+pub mod receipt;
 pub mod repository;
 pub mod service;
