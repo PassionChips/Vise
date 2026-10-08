@@ -33,6 +33,7 @@ appId: com.reborn_lvl.viseapp
 - inputText: "Onboarding coffee"
 - hideKeyboard
 - tapOn: "Add transaction"
+- runFlow: skip-backup.yaml
 
 - assertVisible: "You’re all set.*"
 - tapOn: "Go to dashboard"

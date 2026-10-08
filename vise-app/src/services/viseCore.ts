@@ -42,6 +42,8 @@ import type {
   ImportSummary,
   ReceiptInput,
   ReceiptScan,
+  BackupInfo,
+  BackupInspection,
 } from './types';
 
 /** Shape of the native module (modules/vise-core). */
@@ -186,3 +188,20 @@ export const commitImport = (input: ImportInput) => mutate<ImportSummary>('commi
 
 /** Works out the total, date, merchant and currency from OCR lines. Reads stored history to suggest a category. */
 export const parseReceipt = (input: ReceiptInput) => call<ReceiptScan>('parseReceipt', input);
+
+// ----- Backup and restore -----
+
+/** Writes a backup of the whole database to `path` (a file path on the phone). A passphrase of 8+ characters protects it. */
+export const createBackup = (path: string, passphrase?: string) =>
+  call<BackupInfo>('createBackup', { path, ...(passphrase ? { passphrase } : {}) });
+
+/** What is in the backup file at `path`. Changes nothing. */
+export const inspectBackup = (path: string, passphrase?: string) =>
+  call<BackupInspection>('inspectBackup', { path, ...(passphrase ? { passphrase } : {}) });
+
+/** Replaces ALL data on this phone with the backup. All or nothing: a failed restore leaves the data as it was. */
+export const restoreBackup = (path: string, passphrase?: string) =>
+  mutate<BackupInspection>('restoreBackup', { path, ...(passphrase ? { passphrase } : {}) });
+
+/** Records that a backup has just reached its destination. */
+export const markBackupDone = () => mutate<Settings>('markBackupDone', {});

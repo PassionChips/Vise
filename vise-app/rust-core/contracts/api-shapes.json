@@ -2,10 +2,12 @@
   "_comment": "Field names of the JSON rust-core returns. Checked by rust-core/tests/contract.rs and by src/__tests__/contract.test.ts against src/services/types.ts. Change all three together.",
   "Settings": [
     "avatar",
+    "backup_folder",
     "currency",
     "display_name",
     "income_source_id",
     "income_source_name",
+    "last_backup_at",
     "monthly_income_cents",
     "onboarding_completed",
     "theme",
@@ -162,5 +164,26 @@
     "amount_cents",
     "confidence",
     "line"
+  ],
+  "BackupInfo": [
+    "bytes",
+    "created_at",
+    "encrypted",
+    "path",
+    "summary"
+  ],
+  "BackupInspection": [
+    "created_at",
+    "encrypted",
+    "needs_passphrase",
+    "summary"
+  ],
+  "BackupSummary": [
+    "budgets",
+    "categories",
+    "first_transaction_date",
+    "income_sources",
+    "last_transaction_date",
+    "transactions"
   ]
 }

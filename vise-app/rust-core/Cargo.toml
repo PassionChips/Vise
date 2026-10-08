@@ -15,6 +15,10 @@ diesel_migrations = "2"
 libsqlite3-sys = { version = "0.35",features = ["bundled"]}
 csv = "1.4.0"
 chrono = "0.4.45"
+aes-gcm = "0.11.1"
+argon2 = "0.6.0"
+sha2 = "0.11.0"
+getrandom = "0.4.3"
 
 [target.'cfg(target_os = "android")'.dependencies]
 jni = "0.21"

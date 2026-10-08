@@ -21,6 +21,10 @@ pub struct AppSettings {
     pub theme: String,
     /// Preset avatar id, or None for initials.
     pub avatar: Option<String>,
+    /// Where the user keeps backups on this phone (an address from the file picker).
+    pub backup_folder: Option<String>,
+    /// Unix time of the last backup that reached its destination.
+    pub last_backup_at: Option<i64>,
 }
 
 #[derive(Debug, Clone, AsChangeset, Default)]
@@ -35,4 +39,6 @@ pub struct UpdateAppSettings {
     pub onboarding_completed_at: Option<Option<i64>>,
     pub theme: Option<String>,
     pub avatar: Option<Option<String>>,
+    pub backup_folder: Option<Option<String>>,
+    pub last_backup_at: Option<Option<i64>>,
 }

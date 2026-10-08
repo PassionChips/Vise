@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { clearError } from '../../data/formErrors';
 import { ViseError } from '../../services/viseCore';
+import { BackupStep } from './BackupStep';
 import { saveOnboarding, type OnboardingAnswers } from './saveOnboarding';
 import {
   AllSetScreen,
@@ -13,9 +14,9 @@ import {
   WelcomeScreen,
 } from './screens';
 
-type Step = 'welcome' | 'currency' | 'income' | 'category' | 'limit' | 'transaction' | 'done';
+type Step = 'welcome' | 'currency' | 'income' | 'category' | 'limit' | 'transaction' | 'backup' | 'done';
 
-const numberedSteps: Step[] = ['currency', 'income', 'category', 'limit', 'transaction'];
+const numberedSteps: Step[] = ['currency', 'income', 'category', 'limit', 'transaction', 'backup'];
 
 /** Which step owns each rust-core validation field, so errors land on the right screen. */
 const fieldStep: Record<string, Step> = {
@@ -32,9 +33,11 @@ const fieldStep: Record<string, Step> = {
 interface OnboardingFlowProps {
   userName?: string;
   onFinish: (answers: OnboardingAnswers) => void;
+  /** "I already use VISE": bring the data back from a backup instead of starting again. */
+  onRestore: () => void;
 }
 
-export function OnboardingFlow({ userName, onFinish }: OnboardingFlowProps) {
+export function OnboardingFlow({ userName, onFinish, onRestore }: OnboardingFlowProps) {
   const [step, setStep] = useState<Step>('welcome');
   const [answers, setAnswers] = useState<OnboardingAnswers>({
     currency: 'EUR',
@@ -70,7 +73,8 @@ export function OnboardingFlow({ userName, onFinish }: OnboardingFlowProps) {
     try {
       await saveOnboarding(final);
       setAnswers(final);
-      setStep('done');
+      // Everything is saved, so there is now something worth backing up.
+      setStep('backup');
     } catch (error) {
       if (error instanceof ViseError && error.field && fieldStep[error.field]) {
         setErrors({ [error.field]: error.message });
@@ -88,15 +92,14 @@ export function OnboardingFlow({ userName, onFinish }: OnboardingFlowProps) {
     step: index + 1,
     total: numberedSteps.length,
     onBack: () => setStep(index > 0 ? numberedSteps[index - 1] : 'welcome'),
-    // Skipping the last step saves without a transaction.
-    onSkip: () =>
-      index < numberedSteps.length - 1 ? setStep(numberedSteps[index + 1]) : save({ ...answers, transaction: null }),
+    // Skipping the transaction step saves without a transaction. (The backup step handles its own skip.)
+    onSkip: () => (step === 'transaction' ? save({ ...answers, transaction: null }) : setStep(numberedSteps[index + 1])),
   };
   const next = () => setStep(numberedSteps[index + 1]);
 
   switch (step) {
     case 'welcome':
-      return <WelcomeScreen onStart={() => setStep('currency')} />;
+      return <WelcomeScreen onStart={() => setStep('currency')} onRestore={onRestore} />;
     case 'currency':
       return (
         <CurrencyScreen
@@ -156,6 +159,8 @@ export function OnboardingFlow({ userName, onFinish }: OnboardingFlowProps) {
           errors={errors}
         />
       );
+    case 'backup':
+      return <BackupStep stepper={stepper} onDone={() => setStep('done')} />;
     case 'done':
       return <AllSetScreen userName={userName} answers={answers} onFinish={() => onFinish(answers)} />;
   }

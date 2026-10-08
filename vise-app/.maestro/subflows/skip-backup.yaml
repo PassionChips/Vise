@@ -1,0 +1,7 @@
+# The last onboarding step asks for a backup. Skipping it shows a warning first.
+appId: com.reborn_lvl.viseapp
+---
+- assertVisible: "Never lose your data"
+- tapOn: "Skip"
+- assertVisible: "Skip the backup?"
+- tapOn: "Skip anyway"

@@ -18,7 +18,8 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.reborn_lvl.viseapp"
+      "package": "com.reborn_lvl.viseapp",
+      "allowBackup": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
