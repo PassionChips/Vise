@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { clearError } from '../../data/formErrors';
 import { ViseError } from '../../services/viseCore';
 import { saveOnboarding, type OnboardingAnswers } from './saveOnboarding';
 import {
@@ -52,7 +53,16 @@ export function OnboardingFlow({ userName, onFinish }: OnboardingFlowProps) {
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [saving, setSaving] = useState(false);
 
-  const update = (patch: Partial<OnboardingAnswers>) => setAnswers((prev) => ({ ...prev, ...patch }));
+  /** An error belongs to the value that was rejected, so it goes as soon as that value changes. */
+  const dropErrors = (...fields: string[]) =>
+    setErrors((prev) => fields.reduce((rest, field) => clearError(rest, field), prev));
+
+  const update = (patch: Partial<OnboardingAnswers>) => {
+    setAnswers((prev) => ({ ...prev, ...patch }));
+    if ('monthlyIncome' in patch) dropErrors('monthly_income');
+    if ('monthlyLimit' in patch) dropErrors('limit');
+    if ('budgetCategory' in patch) dropErrors('budget_category');
+  };
 
   const save = async (final: OnboardingAnswers) => {
     setSaving(true);
@@ -137,7 +147,10 @@ export function OnboardingFlow({ userName, onFinish }: OnboardingFlowProps) {
           stepper={stepper}
           currency={answers.currency}
           value={transaction}
-          onChange={setTransaction}
+          onChange={(next) => {
+            setTransaction(next);
+            dropErrors('transaction_type', 'amount', 'description', 'date', 'expense_category_id', 'form');
+          }}
           onSubmit={() => save({ ...answers, transaction })}
           saving={saving}
           errors={errors}

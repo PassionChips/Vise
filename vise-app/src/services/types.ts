@@ -381,6 +381,47 @@ export interface ImportSummary {
   categories_created: number;
 }
 
+// ----- Receipt scanning -----
+
+/** One line of text the phone's OCR found, with its box on the photo. */
+export interface OcrLine {
+  text: string;
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+export interface ReceiptInput {
+  lines: OcrLine[];
+  /** Today, YYYY-MM-DD. */
+  today: string;
+  /** Currency to assume when the receipt shows none. */
+  default_currency: string;
+}
+
+export interface TotalCandidate {
+  amount_cents: number;
+  /** The row of the receipt it came from. */
+  line: string;
+  /** "total": a labelled total. "likely": a card payment line. "possible": a guess. */
+  confidence: 'total' | 'likely' | 'possible';
+}
+
+/** What was read from a receipt photo: a proposal for the user to check, never saved by itself. */
+export interface ReceiptScan {
+  merchant: string | null;
+  /** YYYY-MM-DD, if a plausible date was printed. */
+  date: string | null;
+  /** Best guess first. Empty if no amount was found. */
+  totals: TotalCandidate[];
+  currency: string;
+  /** False if the receipt showed no currency and `currency` is the default. */
+  currency_found: boolean;
+  suggestion: ImportSuggestion | null;
+  warnings: string[];
+}
+
 // ----- Errors -----
 
 export type ErrorKind = 'validation' | 'not_found' | 'invalid_request' | 'database' | 'bridge_unavailable';

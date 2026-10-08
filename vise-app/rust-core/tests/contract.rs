@@ -113,4 +113,21 @@ fn reply_shapes_match_the_contract() {
     );
     let saved = call(&mut connection, "commitImport", import);
     assert_eq!(keys(&saved), expected("ImportSummary"));
+
+    // Receipt scan: "Lidl Berlin" was filed under Groceries before, so the scan suggests it.
+    call(
+        &mut connection,
+        "addTransaction",
+        json!({ "transaction_type": "expense", "amount": "7", "currency": "EUR",
+            "description": "Lidl Berlin", "date": "2026-08-02", "expense_category_id": groceries["id"] }),
+    );
+    let line = |text: &str, top: f64| json!({ "text": text, "left": 0.0, "top": top, "right": 100.0, "bottom": top + 20.0 });
+    let scan = call(
+        &mut connection,
+        "parseReceipt",
+        json!({ "lines": [line("Lidl Berlin", 0.0), line("TOTAL 4.50", 30.0)], "today": "2026-10-04", "default_currency": "EUR" }),
+    );
+    assert_eq!(keys(&scan), expected("ReceiptScan"));
+    assert_eq!(keys(&scan["totals"][0]), expected("TotalCandidate"));
+    assert_eq!(keys(&scan["suggestion"]), expected("ImportSuggestion"));
 }

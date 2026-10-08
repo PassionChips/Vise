@@ -148,5 +148,19 @@
     "is_new",
     "name",
     "source"
+  ],
+  "ReceiptScan": [
+    "currency",
+    "currency_found",
+    "date",
+    "merchant",
+    "suggestion",
+    "totals",
+    "warnings"
+  ],
+  "TotalCandidate": [
+    "amount_cents",
+    "confidence",
+    "line"
   ]
 }

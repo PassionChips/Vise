@@ -63,6 +63,15 @@ function Form({ kind, settings, sources }: { kind: Field; settings: Settings; so
   );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // The message belongs to the value that was rejected, so it goes as soon as the value changes.
+  const changeText = (value: string) => {
+    setText(value);
+    setError(null);
+  };
+  const changeChoice = (value: string) => {
+    setChoice(value);
+    setError(null);
+  };
 
   async function save() {
     setError(null);
@@ -91,14 +100,14 @@ function Form({ kind, settings, sources }: { kind: Field; settings: Settings; so
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-        {kind === 'name' && <TextField label="Name" value={text} onChangeText={setText} placeholder="Your name" error={error ?? undefined} helperText="Leave blank to remove it." />}
+        {kind === 'name' && <TextField label="Name" value={text} onChangeText={changeText} placeholder="Your name" error={error ?? undefined} helperText="Leave blank to remove it." />}
         {kind === 'income' && (
           <AmountInput
             label="Expected monthly income"
             currency={settings.currency}
             currencySymbol={currencyByCode(settings.currency as CurrencyCode)?.symbol ?? settings.currency}
             value={text}
-            onChangeText={setText}
+            onChangeText={changeText}
             helperText="Used for “left to spend” until your real income is recorded. Leave blank to clear."
             error={error ?? undefined}
           />
@@ -107,7 +116,7 @@ function Form({ kind, settings, sources }: { kind: Field; settings: Settings; so
           <TextField
             label="Warn when a budget reaches (%)"
             value={text}
-            onChangeText={(v) => setText(v.replace(/[^0-9]/g, ''))}
+            onChangeText={(v) => changeText(v.replace(/[^0-9]/g, ''))}
             helperText="Budgets show “near limit” from this percentage of their limit."
             error={error ?? undefined}
           />
@@ -117,12 +126,12 @@ function Form({ kind, settings, sources }: { kind: Field; settings: Settings; so
             label="Currency"
             options={currencies.map((c) => ({ value: c.code, label: `${c.code} — ${c.name} · ${c.symbol}` }))}
             value={choice}
-            onChange={setChoice}
+            onChange={changeChoice}
             error={error ?? undefined}
           />
         )}
         {kind === 'source' && (
-          <SelectField label="Income source" options={sourceOptions(sources)} value={choice} onChange={setChoice} error={error ?? undefined} />
+          <SelectField label="Income source" options={sourceOptions(sources)} value={choice} onChange={changeChoice} error={error ?? undefined} />
         )}
         {kind === 'currency' && (
           <Alert type="info" title="Existing transactions keep their currency" description="VISE doesn’t convert amounts. Changing currency affects new entries and what the screens total up." />

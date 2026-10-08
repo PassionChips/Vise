@@ -40,10 +40,15 @@ Desktop.ini
 *.swo
 *~
 
-# ── Local AI-assistant files ──
+# ── Local AI-assistant files (agents, skills, instructions): personal tooling, not part of the app ──
 .claude/
 CLAUDE.md
+CLAUDE.local.md
 AGENTS.md
+.agents/
+.agent/
+skills-lock.json
+.mcp.json
 
 # ── Build outputs and packages (rebuilt by CI or locally, never committed) ──
 *.apk

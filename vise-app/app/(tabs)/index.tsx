@@ -7,6 +7,7 @@ import {
   ChartNoAxesCombined,
   ChevronRight,
   Plus,
+  ScanLine,
   Wallet,
 } from 'lucide-react-native';
 import { useState } from 'react';
@@ -213,6 +214,12 @@ function Dashboard({ data }: { data: FinanceData }) {
           title="Income"
           subtitle="Salary, refunds, side work"
           onPress={() => go({ pathname: '/add-transaction', params: { type: 'income' } })}
+        />
+        <SheetAction
+          icon={ScanLine}
+          title="Scan receipt"
+          subtitle="Read a bill with your camera"
+          onPress={() => go({ pathname: '/add-transaction', params: { scan: 'camera' } })}
         />
         <SheetAction icon={Wallet} tint={color.brand.primary} tileBackground={color.brand.subtle} title="Budget" subtitle="Set a monthly limit for a category" onPress={() => go('/budget-form')} />
       </BottomSheet>

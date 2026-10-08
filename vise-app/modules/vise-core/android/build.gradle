@@ -17,3 +17,8 @@ android {
     main { jniLibs.srcDirs = ['src/main/jniLibs'] }
   }
 }
+
+dependencies {
+  // On-device text recognition (Latin script), bundled with the app so it works offline.
+  implementation 'com.google.mlkit:text-recognition:16.0.1'
+}
