@@ -97,6 +97,7 @@ describe('delete warning wording', () => {
     expect(text).toContain('3 income sources');
     expect(text).toContain('avatar');
     expect(text).toMatch(/can’t be undone/);
+    expect(text).toMatch(/Backup files you saved elsewhere are not deleted/);
   });
 
   it('uses plurals for zero', () => {

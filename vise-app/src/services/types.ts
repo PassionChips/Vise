@@ -181,6 +181,10 @@ export interface Settings {
   theme: ThemeSetting;
   /** Preset avatar id (see src/data/avatars.ts), or null to show initials. */
   avatar: string | null;
+  /** The folder chosen for backups on this phone (an address from the file picker), or null. */
+  backup_folder: string | null;
+  /** Unix time of the last backup that reached its destination, or null if there never was one. */
+  last_backup_at: number | null;
 }
 
 export type ThemeSetting = 'system' | 'light' | 'dark';
@@ -195,6 +199,8 @@ export interface UpdateSettingsInput {
   theme?: ThemeSetting;
   /** A preset avatar id; '' goes back to initials. */
   avatar?: string;
+  /** The backup folder's address; '' forgets it. */
+  backup_folder?: string;
 }
 
 export interface OnboardingCategory {
@@ -420,6 +426,36 @@ export interface ReceiptScan {
   currency_found: boolean;
   suggestion: ImportSuggestion | null;
   warnings: string[];
+}
+
+// ----- Backup and restore -----
+
+export interface BackupSummary {
+  transactions: number;
+  categories: number;
+  income_sources: number;
+  /** Monthly budgets plus per-category limits. */
+  budgets: number;
+  /** YYYY-MM-DD of the oldest and newest transaction, if there are any. */
+  first_transaction_date: string | null;
+  last_transaction_date: string | null;
+}
+
+export interface BackupInfo {
+  path: string;
+  bytes: number;
+  encrypted: boolean;
+  /** ISO 8601, UTC. */
+  created_at: string;
+  summary: BackupSummary;
+}
+
+/** What is in a backup file, without restoring it. A protected file reports `needs_passphrase` until unlocked. */
+export interface BackupInspection {
+  encrypted: boolean;
+  needs_passphrase: boolean;
+  created_at: string;
+  summary: BackupSummary | null;
 }
 
 // ----- Errors -----

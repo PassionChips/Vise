@@ -13,6 +13,8 @@ diesel::table! {
         updated_at -> BigInt,
         theme -> Text,
         avatar -> Nullable<Text>,
+        backup_folder -> Nullable<Text>,
+        last_backup_at -> Nullable<BigInt>,
     }
 }
 

@@ -30,6 +30,12 @@ public class ViseCoreModule: Module {
       vise_free(failure)
       throw Exception(name: "ERR_VISE_CORE_OPEN", description: message)
     }
+    // Nothing leaves the phone unless the user backs it up themselves, so keep the database out of iCloud
+    // backups. This has to happen after vise_init, which creates the file.
+    var databaseURL = URL(fileURLWithPath: path)
+    var excluded = URLResourceValues()
+    excluded.isExcludedFromBackup = true
+    try? databaseURL.setResourceValues(excluded)
     opened = true
   }
 

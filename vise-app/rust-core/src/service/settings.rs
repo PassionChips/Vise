@@ -44,6 +44,10 @@ pub struct SettingsView {
     pub theme: String,
     /// Preset avatar id (one of [`AVATARS`]), or null to show initials.
     pub avatar: Option<String>,
+    /// The folder chosen for backups on this phone, or null.
+    pub backup_folder: Option<String>,
+    /// Unix time of the last backup that reached its destination, or null if there never was one.
+    pub last_backup_at: Option<i64>,
 }
 
 /// Values accepted for `theme`.
@@ -78,6 +82,9 @@ pub struct UpdateSettingsInput {
     /// A preset avatar id; an empty string goes back to initials.
     #[serde(default)]
     pub avatar: Option<String>,
+    /// The backup folder's address; an empty string forgets it.
+    #[serde(default)]
+    pub backup_folder: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -149,6 +156,8 @@ fn view(
         onboarding_completed: settings.onboarding_completed_at.is_some(),
         theme: settings.theme,
         avatar: settings.avatar,
+        backup_folder: settings.backup_folder,
+        last_backup_at: settings.last_backup_at,
     })
 }
 
@@ -208,7 +217,30 @@ pub fn update_settings(
             return Err(AppError::validation("avatar", "Choose one of the avatars"));
         });
     }
+    if let Some(folder) = &input.backup_folder {
+        let folder = folder.trim();
+        if folder.chars().count() > MAX_BACKUP_FOLDER_LENGTH {
+            return Err(AppError::validation(
+                "backup_folder",
+                "That folder address is too long",
+            ));
+        }
+        changes.backup_folder = Some((!folder.is_empty()).then(|| folder.to_string()));
+    }
 
+    let updated = app_settings_repository::update(connection, &changes)?;
+    view(connection, updated)
+}
+
+/// Longest folder address kept (matches the column's CHECK).
+const MAX_BACKUP_FOLDER_LENGTH: usize = 2048;
+
+/// Records that a backup reached its destination just now.
+pub fn mark_backup_done(connection: &mut SqliteConnection) -> Result<SettingsView, AppError> {
+    let changes = UpdateAppSettings {
+        last_backup_at: Some(Some(chrono::Utc::now().timestamp())),
+        ..Default::default()
+    };
     let updated = app_settings_repository::update(connection, &changes)?;
     view(connection, updated)
 }
@@ -609,6 +641,7 @@ mod tests {
         assert_eq!(get_settings(&mut connection).unwrap().theme, "system");
 
         let input = |theme: &str| UpdateSettingsInput {
+            backup_folder: None,
             currency: None,
             display_name: None,
             monthly_income: None,
@@ -637,6 +670,7 @@ mod tests {
         assert_eq!(get_settings(&mut connection).unwrap().avatar, None);
 
         let input = |avatar: &str| UpdateSettingsInput {
+            backup_folder: None,
             currency: None,
             display_name: None,
             monthly_income: None,
@@ -694,6 +728,7 @@ mod tests {
         let updated = update_settings(
             &mut connection,
             &UpdateSettingsInput {
+                backup_folder: None,
                 currency: None,
                 display_name: Some("".to_string()),
                 monthly_income: Some("5000".to_string()),
@@ -718,6 +753,7 @@ mod tests {
 
         for bad in [
             UpdateSettingsInput {
+                backup_folder: None,
                 currency: Some("EURO".to_string()),
                 display_name: None,
                 monthly_income: None,
@@ -727,6 +763,7 @@ mod tests {
                 avatar: None,
             },
             UpdateSettingsInput {
+                backup_folder: None,
                 currency: None,
                 display_name: None,
                 monthly_income: None,
@@ -736,6 +773,7 @@ mod tests {
                 avatar: None,
             },
             UpdateSettingsInput {
+                backup_folder: None,
                 currency: None,
                 display_name: None,
                 monthly_income: None,

@@ -1,0 +1,41 @@
+appId: com.reborn_lvl.viseapp
+name: Backup prompt in onboarding, and the restore entry point
+tags: [onboarding, backup]
+---
+# The Welcome page offers restoring for people who already use VISE
+- runFlow: ../subflows/fresh-start.yaml
+- assertVisible: "I already use VISE.*"
+- tapOn: "I already use VISE.*"
+- assertVisible: "Restore your data"
+- assertVisible: "Choose backup file"
+- tapOn: "Close"
+- assertVisible: "Get started"
+
+# Onboarding ends with a backup step; skipping needs a warning first
+- tapOn: "Get started"
+- tapOn: "Continue"
+- tapOn: "Continue"
+- tapOn: "Continue"
+- tapOn: "Continue"
+- tapOn: "Skip"
+- assertVisible: "Never lose your data"
+- tapOn: "Skip"
+- assertVisible: "Skip the backup?"
+- assertVisible: ".*can’t be recovered.*"
+# The safe choice keeps the user on the step
+- tapOn: "Back up now"
+- assertVisible: "Never lose your data"
+# Skipping anyway continues
+- tapOn: "Skip"
+- tapOn: "Skip anyway"
+- assertVisible: "You’re all set.*"
+- tapOn: "Go to dashboard"
+
+# Settings says it has never been backed up
+- tapOn: "Settings"
+- scrollUntilVisible:
+    element: "Backup & restore"
+- assertVisible: "Never"
+- tapOn: "Backup & restore"
+- assertVisible: "Not backed up yet"
+- assertVisible: "Choose a folder and back up"
