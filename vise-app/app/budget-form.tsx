@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { Trash2, X } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,6 +9,7 @@ import { IconButton, PrimaryButton } from '../src/components/Buttons';
 import { AmountInput, SelectField } from '../src/components/Inputs';
 import { ConfirmDialog } from '../src/components/Overlays';
 import { QueryState } from '../src/components/QueryState';
+import { activeErrors, clearError, fixSummary } from '../src/data/formErrors';
 import { useFinance, type FinanceData } from '../src/data/finance';
 import { categoryOptions, resolveCategory } from '../src/data/pickers';
 import { setDeletedBudget } from '../src/data/undo';
@@ -36,6 +37,14 @@ export default function BudgetFormScreen() {
   );
 }
 
+/** Checks the form. Runs on save and, once the user has tried to save, on every change. */
+function validateBudget(v: { category: string | null; limit: string }): Errors {
+  const found: Errors = {};
+  if (!v.category) found.category = 'Choose a category';
+  if (!(Number(v.limit) > 0)) found.limit = 'Enter a limit greater than 0';
+  return found;
+}
+
 function Form({ data, editingId }: { data: FinanceData; editingId: number | null }) {
   const { month, settings, summary, categories } = data;
   const currency = settings.currency;
@@ -44,19 +53,26 @@ function Form({ data, editingId }: { data: FinanceData; editingId: number | null
   const [category, setCategory] = useState<string | null>(editingId != null ? String(editingId) : null);
   const [limit, setLimit] = useState(existing?.limit_cents != null ? centsToAmount(existing.limit_cents) : '');
   const [errors, setErrors] = useState<Errors>({});
+  const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const budgeted = new Set(summary.categories.filter((c) => c.limit_cents != null).map((c) => String(c.category_id)));
   // Editing keeps the one category; creating offers only categories without a budget.
   const options = categoryOptions(categories).filter((o) => (existing ? o.value === String(editingId) : !budgeted.has(o.value)));
-  const errorKeys = Object.keys(errors).filter((k) => k !== 'form');
+  const fixing = activeErrors(errors);
+  const banner = fixSummary(fixing.map((key) => (key === 'category' ? 'Category' : key === 'limit' ? 'Monthly limit' : key)));
+
+  // After a first attempt to save, keep the messages in step with what is typed.
+  useEffect(() => {
+    if (!submitted) return;
+    setErrors((prev) => ({ ...validateBudget({ category, limit }), ...(prev.form ? { form: prev.form } : {}) }));
+  }, [submitted, category, limit]);
   const symbol = currencyByCode(currency as CurrencyCode)?.symbol ?? currency;
 
   async function save() {
-    const found: Errors = {};
-    if (!category) found.category = 'Choose a category';
-    if (!(Number(limit) > 0)) found.limit = 'Enter a limit greater than 0';
+    const found = validateBudget({ category, limit });
+    setSubmitted(true);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
 
@@ -100,20 +116,14 @@ function Form({ data, editingId }: { data: FinanceData; editingId: number | null
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
           {errors.form && <Alert type="error" title="Couldn’t save" description={errors.form} />}
-          {errorKeys.length > 0 && (
-            <Alert
-              type="error"
-              title={`${errorKeys.length} ${errorKeys.length === 1 ? 'thing needs' : 'things need'} fixing`}
-              description="Check the highlighted fields below."
-            />
-          )}
+          {fixing.length > 0 && <Alert type="error" title={banner.title} description={banner.description} />}
           <SelectField
             label="Category"
             options={options}
             value={category}
             onChange={(v) => {
               setCategory(v);
-              setErrors((e) => ({ ...e, category: undefined }));
+              setErrors((e) => clearError(e, 'category'));
             }}
             placeholder="Choose a category"
             error={errors.category}
@@ -125,7 +135,7 @@ function Form({ data, editingId }: { data: FinanceData; editingId: number | null
             value={limit}
             onChangeText={(v) => {
               setLimit(v);
-              setErrors((e) => ({ ...e, limit: undefined }));
+              setErrors((e) => clearError(e, 'limit'));
             }}
             helperText="Applies to this month. You can change it any time."
             error={errors.limit}

@@ -10,6 +10,7 @@ import { SegmentedControl } from '../src/components/Controls';
 import { AmountInput, DateField, SelectField, TextField } from '../src/components/Inputs';
 import { BottomSheet, SheetAction } from '../src/components/Overlays';
 import { QueryState } from '../src/components/QueryState';
+import { activeErrors, clearError, fixSummary } from '../src/data/formErrors';
 import { useFinance, type FinanceData } from '../src/data/finance';
 import { scanReceipt, type ReceiptSource } from '../src/data/receiptScan';
 import { ScanNotes } from '../src/features/receipt/ScanNotes';
@@ -85,6 +86,15 @@ async function findTransaction(id: number): Promise<Transaction | null> {
   return null;
 }
 
+/** Checks the form. Runs on save and, once the user has tried to save, on every change. */
+function validateTransaction(v: { amount: string; category: string | null; description: string; expense: boolean }): Errors {
+  const found: Errors = {};
+  if (!(Number(v.amount) > 0)) found.amount = 'Enter an amount greater than 0';
+  if (!v.category) found.category = v.expense ? 'Choose a category' : 'Choose a source';
+  if (!v.description.trim()) found.description = 'Enter a description';
+  return found;
+}
+
 function Form({
   data,
   existing,
@@ -112,6 +122,7 @@ function Form({
         : null,
   );
   const [errors, setErrors] = useState<Errors>({});
+  const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [date, setDate] = useState(existing ? isoFromUnix(existing.occurred_at) : todayIso());
   const [scan, setScan] = useState<ReceiptScan | null>(null);
@@ -121,7 +132,21 @@ function Form({
 
   const expense = kind === 'Expense';
   const options = expense ? categoryOptions(categories) : sourceOptions(sources);
-  const errorKeys = Object.keys(errors).filter((k) => k !== 'form');
+  const fixing = activeErrors(errors);
+  const fieldLabels: Record<string, string> = {
+    amount: 'Amount',
+    description: 'Description',
+    category: expense ? 'Category' : 'Source',
+    date: 'Date',
+  };
+  const banner = fixSummary(fixing.map((key) => fieldLabels[key] ?? key));
+
+  // After a first attempt to save, keep the messages in step with what is typed: a field is
+  // highlighted while it is wrong and its message disappears as soon as it is right.
+  useEffect(() => {
+    if (!submitted) return;
+    setErrors((prev) => ({ ...validateTransaction({ amount, category, description, expense }), ...(prev.form ? { form: prev.form } : {}) }));
+  }, [submitted, amount, category, description, expense]);
 
   // Switching between expense and income clears a choice that belongs to the other list.
   useEffect(() => {
@@ -159,10 +184,8 @@ function Form({
   }, []);
 
   async function save() {
-    const found: Errors = {};
-    if (!(Number(amount) > 0)) found.amount = 'Enter an amount greater than 0';
-    if (!category) found.category = expense ? 'Choose a category' : 'Choose a source';
-    if (!description.trim()) found.description = 'Enter a description';
+    const found = validateTransaction({ amount, category, description, expense });
+    setSubmitted(true);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
 
@@ -224,13 +247,7 @@ function Form({
           )}
 
           {errors.form && <Alert type="error" title="Couldn’t save" description={errors.form} />}
-          {errorKeys.length > 0 && (
-            <Alert
-              type="error"
-              title={`${errorKeys.length} ${errorKeys.length === 1 ? 'thing needs' : 'things need'} fixing`}
-              description="Check the highlighted fields below."
-            />
-          )}
+          {fixing.length > 0 && <Alert type="error" title={banner.title} description={banner.description} />}
 
           <AmountInput
             label="Amount"
@@ -239,7 +256,7 @@ function Form({
             value={amount}
             onChangeText={(v) => {
               setAmount(v);
-              setErrors((e) => ({ ...e, amount: undefined }));
+              setErrors((e) => clearError(e, 'amount'));
             }}
             error={errors.amount}
           />
@@ -248,7 +265,7 @@ function Form({
             value={description}
             onChangeText={(v) => {
               setDescription(v);
-              setErrors((e) => ({ ...e, description: undefined }));
+              setErrors((e) => clearError(e, 'description'));
             }}
             placeholder="e.g. Tesco Express"
             error={errors.description}
@@ -259,7 +276,7 @@ function Form({
             value={category}
             onChange={(v) => {
               setCategory(v);
-              setErrors((e) => ({ ...e, category: undefined }));
+              setErrors((e) => clearError(e, 'category'));
             }}
             placeholder={expense ? 'Choose a category' : 'Choose a source'}
             error={errors.category}
