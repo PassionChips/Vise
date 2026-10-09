@@ -181,6 +181,10 @@ export interface Settings {
   theme: ThemeSetting;
   /** Preset avatar id (see src/data/avatars.ts), or null to show initials. */
   avatar: string | null;
+  /** The folder chosen for backups on this phone (an address from the file picker), or null. */
+  backup_folder: string | null;
+  /** Unix time of the last backup that reached its destination, or null if there never was one. */
+  last_backup_at: number | null;
 }
 
 export type ThemeSetting = 'system' | 'light' | 'dark';
@@ -195,6 +199,8 @@ export interface UpdateSettingsInput {
   theme?: ThemeSetting;
   /** A preset avatar id; '' goes back to initials. */
   avatar?: string;
+  /** The backup folder's address; '' forgets it. */
+  backup_folder?: string;
 }
 
 export interface OnboardingCategory {
@@ -420,6 +426,71 @@ export interface ReceiptScan {
   currency_found: boolean;
   suggestion: ImportSuggestion | null;
   warnings: string[];
+}
+
+// ----- Backup and restore -----
+
+export interface BackupSummary {
+  transactions: number;
+  categories: number;
+  income_sources: number;
+  /** Monthly budgets plus per-category limits. */
+  budgets: number;
+  /** YYYY-MM-DD of the oldest and newest transaction, if there are any. */
+  first_transaction_date: string | null;
+  last_transaction_date: string | null;
+}
+
+export interface BackupInfo {
+  path: string;
+  bytes: number;
+  encrypted: boolean;
+  /** ISO 8601, UTC. */
+  created_at: string;
+  summary: BackupSummary;
+}
+
+/** What is in a backup file, without restoring it. A protected file reports `needs_passphrase` until unlocked. */
+export interface BackupInspection {
+  encrypted: boolean;
+  needs_passphrase: boolean;
+  created_at: string;
+  summary: BackupSummary | null;
+}
+
+// ----- Payment capture -----
+
+/** A payment VISE noticed from a payment app's notification, waiting for the user to confirm it. */
+export interface CapturedPayment {
+  id: number;
+  /** "googlepay", "phonepe", "revolut", "paypal", ... */
+  app: string;
+  app_name: string;
+  /** Null if only an amount was found and it was not clear which way the money went. */
+  direction: 'expense' | 'income' | null;
+  amount_cents: number | null;
+  /** Null for a bare "$"; the user's own currency is used when it is confirmed. */
+  currency: string | null;
+  merchant: string | null;
+  reference: string | null;
+  /** YYYY-MM-DD: the phone's date when the notification arrived. */
+  occurred_on: string;
+  occurred_at: number;
+  /** What the notification said, to show what was read. Emptied once resolved. */
+  excerpt: string;
+  suggested_category_id: number | null;
+  suggested_category_name: string | null;
+  /** A transaction with the same day, amount and type already exists. */
+  possible_duplicate: boolean;
+  /** False if VISE could not tell what this was: the user adds it themselves. */
+  understood: boolean;
+}
+
+export interface ConfirmCapturedInput {
+  id: number;
+  /** For an expense; defaults to the suggestion. */
+  expense_category_id?: number;
+  income_source_id?: number;
 }
 
 // ----- Errors -----

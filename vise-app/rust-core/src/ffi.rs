@@ -6,15 +6,17 @@
 //! are serialised. That also makes each API call atomic with respect to
 //! the others.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use diesel::sqlite::SqliteConnection;
 use serde_json::json;
 
-use crate::{api, db::connection::establish_connection};
+use crate::{api, backup, db::connection::establish_connection};
 
 static CONNECTION: Mutex<Option<SqliteConnection>> = Mutex::new(None);
+/// Where the open database lives, so a restore can replace the file.
+static DATABASE_PATH: Mutex<Option<PathBuf>> = Mutex::new(None);
 
 /// Opens (creating and migrating if needed) the database at `path`.
 /// Safe to call again; an already open connection is kept.
@@ -24,6 +26,9 @@ pub fn init(path: &str) -> Result<(), String> {
         let connection = establish_connection(Path::new(path))
             .map_err(|error| format!("Could not open the database: {error}"))?;
         *guard = Some(connection);
+        if let Ok(mut stored) = DATABASE_PATH.lock() {
+            *stored = Some(PathBuf::from(path));
+        }
     }
     Ok(())
 }
@@ -34,10 +39,24 @@ pub fn call(method: &str, payload: &str) -> String {
     let Ok(mut guard) = CONNECTION.lock() else {
         return unavailable("The database lock was poisoned by an earlier crash");
     };
+    // A restore replaces the database file, so it needs the connection slot, not just a connection.
+    if method == "restoreBackup" {
+        return restore_backup(&mut guard, payload);
+    }
     match guard.as_mut() {
         Some(connection) => api::dispatch(connection, method, payload),
         None => unavailable("The database is not open"),
     }
+}
+
+fn restore_backup(slot: &mut Option<SqliteConnection>, payload: &str) -> String {
+    let Some(live) = DATABASE_PATH.lock().ok().and_then(|path| path.clone()) else {
+        return unavailable("The database is not open");
+    };
+    api::envelope(
+        api::parse::<backup::OpenInput>(payload)
+            .and_then(|input| api::to_json(backup::restore(slot, &live, &input))),
+    )
 }
 
 fn unavailable(message: &str) -> String {
@@ -118,9 +137,9 @@ mod android {
             .unwrap_or(std::ptr::null_mut())
     }
 
-    /// `ViseCoreModule.nativeInit(path): String` returns "" or an error message.
+    /// `NativeCore.nativeInit(path): String` returns "" or an error message.
     #[unsafe(no_mangle)]
-    pub extern "system" fn Java_expo_modules_visecore_ViseCoreModule_nativeInit(
+    pub extern "system" fn Java_expo_modules_visecore_NativeCore_nativeInit(
         mut env: JNIEnv,
         _class: JClass,
         path: JString,
@@ -130,9 +149,9 @@ mod android {
         reply(&mut env, &message)
     }
 
-    /// `ViseCoreModule.nativeCall(method, payload): String` returns the JSON reply.
+    /// `NativeCore.nativeCall(method, payload): String` returns the JSON reply.
     #[unsafe(no_mangle)]
-    pub extern "system" fn Java_expo_modules_visecore_ViseCoreModule_nativeCall(
+    pub extern "system" fn Java_expo_modules_visecore_NativeCore_nativeCall(
         mut env: JNIEnv,
         _class: JClass,
         method: JString,
@@ -156,6 +175,37 @@ mod tests {
         // connection, so assert on shape rather than on the exact state.
         let reply: Value = serde_json::from_str(&call("getSettings", "{}")).unwrap();
         assert!(reply["ok"].is_boolean());
+    }
+
+    #[test]
+    fn a_backup_restores_through_the_global_connection() {
+        // Uses the process-wide connection like the app does, so it only checks what
+        // survives other tests running in the same process: the round trip itself.
+        let dir = tempfile::tempdir().unwrap();
+        let live = dir.path().join("vise.db");
+        let backup = dir.path().join("a.vise");
+        let mut connection = establish_connection(&live).unwrap();
+        api::dispatch(&mut connection, "addCategory", r##"{"name":"Groceries"}"##);
+        let made: Value = serde_json::from_str(&api::dispatch(
+            &mut connection,
+            "createBackup",
+            &json!({ "path": backup }).to_string(),
+        ))
+        .unwrap();
+        assert_eq!(made["ok"], true, "{made}");
+        drop(connection);
+
+        let mut slot = Some(establish_connection(&dir.path().join("other.db")).unwrap());
+        let restored = backup::restore(
+            &mut slot,
+            &live,
+            &backup::OpenInput {
+                path: backup.to_string_lossy().into_owned(),
+                passphrase: None,
+            },
+        )
+        .unwrap();
+        assert_eq!(restored.summary.unwrap().categories, 1);
     }
 
     #[test]

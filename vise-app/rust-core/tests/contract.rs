@@ -130,4 +130,26 @@ fn reply_shapes_match_the_contract() {
     assert_eq!(keys(&scan), expected("ReceiptScan"));
     assert_eq!(keys(&scan["totals"][0]), expected("TotalCandidate"));
     assert_eq!(keys(&scan["suggestion"]), expected("ImportSuggestion"));
+
+    // Backups.
+    let dir = std::env::temp_dir().join(format!("vise-contract-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let file = dir.join("a.vise").to_string_lossy().into_owned();
+    let info = call(&mut connection, "createBackup", json!({ "path": file }));
+    assert_eq!(keys(&info), expected("BackupInfo"));
+    assert_eq!(keys(&info["summary"]), expected("BackupSummary"));
+    let inspected = call(&mut connection, "inspectBackup", json!({ "path": file }));
+    assert_eq!(keys(&inspected), expected("BackupInspection"));
+    assert_eq!(keys(&inspected["summary"]), expected("BackupSummary"));
+    std::fs::remove_dir_all(&dir).unwrap();
+
+    // Captured payments: the inbox.
+    call(
+        &mut connection,
+        "captureNotification",
+        json!({ "package": "com.phonepe.app", "title": "Paid ₹250 to Starbucks", "text": "",
+            "posted_at": 1_791_000_000, "local_date": "2026-10-08" }),
+    );
+    let inbox = call(&mut connection, "listCaptured", json!({}));
+    assert_eq!(keys(&inbox[0]), expected("CapturedPayment"));
 }

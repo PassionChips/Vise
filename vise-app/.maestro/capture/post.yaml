@@ -1,0 +1,9 @@
+# Posts one test notification. Env: TAG, TITLE, TEXT.
+appId: com.reborn_lvl.viseapp
+---
+- runScript:
+    file: ../scripts/notify.js
+    env:
+      TAG: ${TAG}
+      TITLE: ${TITLE}
+      TEXT: ${TEXT}

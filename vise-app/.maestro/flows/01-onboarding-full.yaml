@@ -39,6 +39,7 @@ tags: [smoke, onboarding]
 - inputText: "Bus pass"
 - hideKeyboard
 - tapOn: "Add transaction"
+- runFlow: ../subflows/skip-backup.yaml
 
 # Summary written by rust-core
 - assertVisible: "You’re all set.*"

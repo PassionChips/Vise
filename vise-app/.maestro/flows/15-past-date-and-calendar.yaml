@@ -1,0 +1,59 @@
+appId: com.reborn_lvl.viseapp
+name: A past date is kept, and the spending calendar shows it
+tags: [transactions, calendar]
+---
+- runFlow: ../subflows/onboard.yaml
+- tapOn: "Transactions"
+- tapOn: "Add transaction"
+- assertVisible: "Add expense"
+- tapOn: "Amount"
+- inputText: "50"
+- tapOn: "Description"
+- inputText: "Maestro Old Dinner"
+- hideKeyboard
+- tapOn: "Category.*"
+- tapOn: "Groceries"
+
+# The date is not forced to today: choose another one
+- tapOn: "Date, .*"
+- assertVisible: "Choose a date"
+- assertVisible: "Yesterday"
+- tapOn: "A week ago"
+- assertNotVisible: "Choose a date"
+- tapOn: "Save expense"
+
+# A week ago can fall in last month; the app says where it went and offers to go there
+- runFlow:
+    when:
+      visible: "Saved to .*"
+    commands:
+      - tapOn: "View"
+- assertVisible: ".*Maestro Old Dinner.*"
+
+# The calendar shows what was spent that day
+- tapOn: "Open spending calendar"
+- assertVisible: "Spending calendar"
+- assertVisible: "Income"
+- assertVisible: ".*spent .*50\\.00.*"
+- tapOn: ".*spent .*50\\.00.*"
+
+# Tapping the day shows just that day, and the totals follow it
+- assertVisible: ".*Maestro Old Dinner.*"
+- assertVisible: ".*Clear the day filter"
+- tapOn: ".*Clear the day filter"
+- assertVisible: ".*Maestro Old Dinner.*"
+
+# The pinned header shows the position for the month on screen
+- assertVisible: "BALANCE.*"
+- assertVisible: "INCOME"
+- assertVisible: "EXPENSES"
+
+# The calendar is gesture-first: swipe sideways between months (there are no arrow buttons)
+- tapOn: "Open spending calendar"
+- assertVisible: "Spending calendar"
+- swipe:
+    direction: LEFT
+- assertVisible: "Spending calendar"
+- swipe:
+    direction: RIGHT
+- tapOn: "Close"

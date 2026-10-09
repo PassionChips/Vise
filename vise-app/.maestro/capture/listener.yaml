@@ -1,0 +1,7 @@
+# Grants (ALLOW=1) or revokes (ALLOW=0) VISE's notification access.
+appId: com.reborn_lvl.viseapp
+---
+- runScript:
+    file: ../scripts/listener.js
+    env:
+      ALLOW: ${ALLOW}

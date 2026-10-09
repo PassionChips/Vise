@@ -1,6 +1,6 @@
 // Overlay/BottomSheet, Feedback/Dialog and Feedback/Toast from the design system.
 
-import { ChevronRight, Trash2, X, type LucideIcon } from 'lucide-react-native';
+import { ChevronRight, Trash2, TriangleAlert, X, type LucideIcon } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { ActivityIndicator, Modal, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -125,6 +125,45 @@ export function ConfirmDialog({ visible, title, message, confirmLabel, onConfirm
   );
 }
 
+interface WarningDialogProps {
+  visible: boolean;
+  title: string;
+  message: string;
+  /** The safe choice, highlighted. */
+  primaryLabel: string;
+  onPrimary: () => void;
+  /** The risky choice, shown plainly. */
+  secondaryLabel: string;
+  onSecondary: () => void;
+}
+
+/** Feedback/Dialog for a caution rather than a deletion: the safe action is the highlighted one. */
+export function WarningDialog({ visible, title, message, primaryLabel, onPrimary, secondaryLabel, onSecondary }: WarningDialogProps) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onPrimary}>
+      <View style={styles.dialogScrim}>
+        <View accessibilityViewIsModal style={styles.dialog}>
+          <View style={[styles.dialogIcon, styles.warningIcon]}>
+            <TriangleAlert size={20} strokeWidth={2} color={color.feedback.warning} />
+          </View>
+          <View style={styles.dialogText}>
+            <Text accessibilityRole="header" style={[type.headingMedium, styles.primary]}>{title}</Text>
+            <Text style={[type.bodyMedium, styles.secondary]}>{message}</Text>
+          </View>
+          <View style={styles.dialogButtons}>
+            <Pressable accessibilityRole="button" onPress={onSecondary} style={[styles.dialogButton, styles.cancel]}>
+              <Text style={[type.button, styles.primary]}>{secondaryLabel}</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={onPrimary} style={[styles.dialogButton, styles.safe]}>
+              <Text style={[type.button, { color: color.content.onBrand }]}>{primaryLabel}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // ----- Feedback/Toast -----
 
 interface ToastProps {
@@ -200,6 +239,8 @@ const styles = themed(() => ({
   dialogButton: { flex: 1, height: 48, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   cancel: { backgroundColor: color.surface.variant },
   destructive: { backgroundColor: color.feedback.error },
+  safe: { backgroundColor: color.brand.primary },
+  warningIcon: { backgroundColor: color.feedback.warningSubtle },
   toast: {
     position: 'absolute',
     left: spacing[24],

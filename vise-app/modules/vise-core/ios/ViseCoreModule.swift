@@ -30,6 +30,12 @@ public class ViseCoreModule: Module {
       vise_free(failure)
       throw Exception(name: "ERR_VISE_CORE_OPEN", description: message)
     }
+    // Nothing leaves the phone unless the user backs it up themselves, so keep the database out of iCloud
+    // backups. This has to happen after vise_init, which creates the file.
+    var databaseURL = URL(fileURLWithPath: path)
+    var excluded = URLResourceValues()
+    excluded.isExcludedFromBackup = true
+    try? databaseURL.setResourceValues(excluded)
     opened = true
   }
 
@@ -42,6 +48,10 @@ public class ViseCoreModule: Module {
       defer { vise_free(reply) }
       return String(cString: reply)
     }
+
+    // Reading other apps' payment notifications is an Android feature; iOS does not allow it.
+    Function("isPaymentCaptureEnabled") { () -> Bool in false }
+    Function("openPaymentCaptureSettings") {}
 
     // On-device OCR with Apple's Vision framework. Returns a JSON array of
     // {text, left, top, right, bottom} (top-left origin, 0...1), one entry per line of text;

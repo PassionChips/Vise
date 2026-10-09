@@ -10,6 +10,10 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
+
+import { invalidateData } from '../src/data/store';
+import { onPaymentCaptured } from '../src/services/capture';
 
 import { ThemeProvider, useTheme } from '../src/theme/ThemeProvider';
 import { color } from '../src/theme/tokens';
@@ -40,6 +44,19 @@ export default function RootLayout() {
 function ThemedStack() {
   const { scheme } = useTheme();
 
+  // Payments can be noticed while the app is closed. Coming back to it reloads every screen, so they show up.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') invalidateData();
+    });
+    // A payment noticed while the app is open shows up in the inbox and on the banner straight away.
+    const stopListening = onPaymentCaptured(invalidateData);
+    return () => {
+      subscription.remove();
+      stopListening();
+    };
+  }, []);
+
   useEffect(() => {
     // Colours the window behind the screens (visible during transitions and the keyboard).
     SystemUI.setBackgroundColorAsync(color.surface.background).catch(() => {});
@@ -55,6 +72,9 @@ function ThemedStack() {
         <Stack.Screen name="budget-form" options={{ presentation: 'modal' }} />
         <Stack.Screen name="edit-setting" options={{ presentation: 'modal' }} />
         <Stack.Screen name="import" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="backup" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="restore" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="captured" options={{ presentation: 'modal' }} />
       </Stack>
     </>
   );

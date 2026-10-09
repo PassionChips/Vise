@@ -18,8 +18,8 @@ use diesel::sqlite::SqliteConnection;
 use serde::{Deserialize, Serialize};
 
 use crate::db::schema::{
-    app_settings, auto_category_rules, budget_months, category_budgets, expense_categories,
-    income_sources, revolut_accounts, sync_state, transactions,
+    app_settings, auto_category_rules, budget_months, captured_payments, category_budgets,
+    expense_categories, income_sources, revolut_accounts, sync_state, transactions,
 };
 use crate::error::AppError;
 use crate::money::format_cents;
@@ -225,6 +225,8 @@ pub fn delete_all_data(
 
     let counts = connection.transaction::<DeletedCounts, AppError, _>(|connection| {
         // Children before parents, so foreign keys are never violated.
+        // The inbox first: it points at transactions and categories.
+        diesel::delete(captured_payments::table).execute(connection)?;
         let transactions = diesel::delete(transactions::table).execute(connection)?;
         let category_limits = diesel::delete(category_budgets::table).execute(connection)?;
         let month_budgets = diesel::delete(budget_months::table).execute(connection)?;
@@ -241,6 +243,8 @@ pub fn delete_all_data(
                 app_settings::warning_threshold_percent.eq(80),
                 app_settings::onboarding_completed_at.eq(None::<i64>),
                 app_settings::avatar.eq(None::<String>),
+                app_settings::backup_folder.eq(None::<String>),
+                app_settings::last_backup_at.eq(None::<i64>),
             ))
             .execute(connection)?;
 
@@ -391,6 +395,7 @@ mod tests {
     fn delete_all_erases_everything_and_restarts_onboarding() {
         let mut connection = onboarded();
         let mut theme = UpdateSettingsInput {
+            backup_folder: None,
             currency: None,
             display_name: None,
             monthly_income: None,

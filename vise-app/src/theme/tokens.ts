@@ -29,6 +29,16 @@ const light = {
     predicted: '#159a91',
   },
   overlay: { scrim: 'rgba(16, 23, 19, 0.6)' },
+  // Frosted surfaces: translucent so what scrolls beneath shows through, with a hairline edge.
+  glass: { surface: 'rgba(255, 255, 255, 0.68)', border: 'rgba(23, 35, 27, 0.08)', inner: 'rgba(23, 35, 27, 0.04)' },
+  // Calendar day tints. Soft on purpose: a quiet wash that reads at a glance, never an alarm.
+  heat: {
+    income: 'rgba(22, 131, 59, 0.14)',
+    under: 'rgba(22, 131, 59, 0.12)',
+    low: 'rgba(194, 52, 43, 0.07)',
+    mid: 'rgba(194, 52, 43, 0.13)',
+    high: 'rgba(194, 52, 43, 0.22)',
+  },
 };
 
 export type Palette = typeof light;
@@ -56,6 +66,14 @@ const dark: Palette = {
     predicted: '#3cc4ba',
   },
   overlay: { scrim: 'rgba(0, 0, 0, 0.6)' },
+  glass: { surface: 'rgba(25, 34, 28, 0.62)', border: 'rgba(255, 255, 255, 0.09)', inner: 'rgba(255, 255, 255, 0.05)' },
+  heat: {
+    income: 'rgba(61, 186, 106, 0.18)',
+    under: 'rgba(61, 186, 106, 0.16)',
+    low: 'rgba(240, 113, 103, 0.10)',
+    mid: 'rgba(240, 113, 103, 0.18)',
+    high: 'rgba(240, 113, 103, 0.28)',
+  },
 };
 
 export const palettes: Record<ColorScheme, Palette> = { light, dark };
