@@ -137,9 +137,9 @@ mod android {
             .unwrap_or(std::ptr::null_mut())
     }
 
-    /// `ViseCoreModule.nativeInit(path): String` returns "" or an error message.
+    /// `NativeCore.nativeInit(path): String` returns "" or an error message.
     #[unsafe(no_mangle)]
-    pub extern "system" fn Java_expo_modules_visecore_ViseCoreModule_nativeInit(
+    pub extern "system" fn Java_expo_modules_visecore_NativeCore_nativeInit(
         mut env: JNIEnv,
         _class: JClass,
         path: JString,
@@ -149,9 +149,9 @@ mod android {
         reply(&mut env, &message)
     }
 
-    /// `ViseCoreModule.nativeCall(method, payload): String` returns the JSON reply.
+    /// `NativeCore.nativeCall(method, payload): String` returns the JSON reply.
     #[unsafe(no_mangle)]
-    pub extern "system" fn Java_expo_modules_visecore_ViseCoreModule_nativeCall(
+    pub extern "system" fn Java_expo_modules_visecore_NativeCore_nativeCall(
         mut env: JNIEnv,
         _class: JClass,
         method: JString,

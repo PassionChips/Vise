@@ -44,6 +44,8 @@ import type {
   ReceiptScan,
   BackupInfo,
   BackupInspection,
+  CapturedPayment,
+  ConfirmCapturedInput,
 } from './types';
 
 /** Shape of the native module (modules/vise-core). */
@@ -205,3 +207,14 @@ export const restoreBackup = (path: string, passphrase?: string) =>
 
 /** Records that a backup has just reached its destination. */
 export const markBackupDone = () => mutate<Settings>('markBackupDone', {});
+
+// ----- Payment capture -----
+
+/** Payments noticed from payment apps' notifications and waiting for the user, newest first. */
+export const listCaptured = () => call<CapturedPayment[]>('listCaptured');
+
+/** Adds the waiting payment as a real transaction, on the day it happened. */
+export const confirmCaptured = (input: ConfirmCapturedInput) => mutate<Transaction>('confirmCaptured', input);
+
+/** Drops a waiting payment. */
+export const dismissCaptured = (id: number) => mutate<null>('dismissCaptured', { id });

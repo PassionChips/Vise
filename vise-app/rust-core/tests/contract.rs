@@ -142,4 +142,14 @@ fn reply_shapes_match_the_contract() {
     assert_eq!(keys(&inspected), expected("BackupInspection"));
     assert_eq!(keys(&inspected["summary"]), expected("BackupSummary"));
     std::fs::remove_dir_all(&dir).unwrap();
+
+    // Captured payments: the inbox.
+    call(
+        &mut connection,
+        "captureNotification",
+        json!({ "package": "com.phonepe.app", "title": "Paid ₹250 to Starbucks", "text": "",
+            "posted_at": 1_791_000_000, "local_date": "2026-10-08" }),
+    );
+    let inbox = call(&mut connection, "listCaptured", json!({}));
+    assert_eq!(keys(&inbox[0]), expected("CapturedPayment"));
 }

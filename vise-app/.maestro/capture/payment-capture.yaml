@@ -1,0 +1,148 @@
+appId: com.reborn_lvl.viseapp
+name: Payment notifications are noticed in real time
+tags: [capture]
+# Run with:  npm run e2e:capture   (starts the helper that posts the notifications; needs a DEBUG build installed)
+---
+- runFlow: ../subflows/onboard.yaml
+
+# ───────── 1. Off until the user allows it ─────────
+- runFlow:
+    file: listener.yaml
+    env: { ALLOW: "0" }
+- tapOn: "Settings"
+- scrollUntilVisible:
+    element: "Payment notifications"
+- tapOn: "Payment notifications"
+- assertVisible: "Not reading notifications"
+- assertVisible: "Turn on in Android settings"
+- assertVisible: "Nothing waiting.*"
+# A payment while access is off is not noticed, and is not picked up later either
+- runFlow:
+    file: post.yaml
+    env: { TAG: phonepe, TITLE: "Paid ₹111 to Missed Shop", TEXT: "Payment successful" }
+
+# ───────── 2. The user turns access on (in Android Settings) ─────────
+- runFlow:
+    file: listener.yaml
+    env: { ALLOW: "1" }
+- extendedWaitUntil:
+    visible: "Reading payment notifications"
+    timeout: 20000
+# Android needs a moment to connect the listener. Re-post a throwaway payment until it appears; a repeat of the same
+# notification is recognised as the same payment, so this never makes a second one.
+- repeat:
+    while:
+      notVisible: ".*Warm Up Shop.*"
+    times: 8
+    commands:
+      - runFlow:
+          file: post.yaml
+          env: { TAG: phonepe, TITLE: "Paid ₹1 to Warm Up Shop", TEXT: "Payment successful" }
+      - assertVisible:
+          text: ".*Warm Up Shop.*"
+          optional: true
+- assertVisible: ".*Warm Up Shop.*"
+- assertNotVisible: ".*Missed Shop.*"
+- tapOn: "Dismiss"
+- assertVisible: "Nothing waiting.*"
+
+# ───────── 3. Real-time: each appears while the screen is open, with no refresh ─────────
+# PhonePe: a payment to a shop, with a reference
+- runFlow:
+    file: post.yaml
+    env: { TAG: phonepe, TITLE: "Paid ₹250 to Starbucks", TEXT: "Payment successful. UPI Ref No 412345678901" }
+- extendedWaitUntil:
+    visible: "To review \\(1\\)"
+    timeout: 20000
+- assertVisible: ".*Starbucks.*"
+- assertVisible: ".*PhonePe.*"
+- assertVisible: ".*250\\.00.*"
+
+# Google Pay: a payment to a person
+- runFlow:
+    file: post.yaml
+    env: { TAG: gpay, TITLE: "You paid ₹1,250.50", TEXT: "to Rahul Sharma using HDFC Bank 1234" }
+- extendedWaitUntil:
+    visible: "To review \\(2\\)"
+    timeout: 20000
+- assertVisible: ".*Rahul Sharma.*"
+- assertVisible: ".*1,250\\.50.*"
+
+# Revolut: the shop is the notification title
+- runFlow:
+    file: post.yaml
+    env: { TAG: revolut, TITLE: "Starbucks", TEXT: "You paid €4.50 • Card payment" }
+- extendedWaitUntil:
+    visible: "To review \\(3\\)"
+    timeout: 20000
+- assertVisible: ".*4\\.50.*"
+
+# PayPal: money sent
+- runFlow:
+    file: post.yaml
+    env: { TAG: paypal, TITLE: "PayPal", TEXT: "You sent $25.00 USD to Jane Doe" }
+- extendedWaitUntil:
+    visible: "To review \\(4\\)"
+    timeout: 20000
+- assertVisible: ".*Jane Doe.*"
+
+# PhonePe: money received is income
+- runFlow:
+    file: post.yaml
+    env: { TAG: phonepe, TITLE: "Money received", TEXT: "₹500 received from Priya Nair. UPI Ref 998877665544" }
+- extendedWaitUntil:
+    visible: "To review \\(5\\)"
+    timeout: 20000
+- assertVisible: ".*Priya Nair.*"
+- assertVisible: ".*\\+.*500\\.00.*"
+
+# ───────── 4. Things that must NOT be captured ─────────
+# An offer, a request for money, a bank alert (banks are not read), and the same Starbucks payment again
+- runFlow:
+    file: post.yaml
+    env: { TAG: phonepe, TITLE: "Offer for you", TEXT: "Get up to ₹100 cashback on your next payment" }
+- runFlow:
+    file: post.yaml
+    env: { TAG: gpay, TITLE: "Rahul requested money", TEXT: "Rahul requested ₹500 from you" }
+- runFlow:
+    file: post.yaml
+    env: { TAG: hdfc, TITLE: "Debit alert", TEXT: "Rs. 250 debited from A/c XX1234 on 08-10-26" }
+- runFlow:
+    file: post.yaml
+    env: { TAG: phonepe, TITLE: "Paid ₹250 to Starbucks", TEXT: "Payment successful. UPI Ref No 412345678901" }
+# Notifications are handled in order, so once this probe is in, the four above have been handled too.
+- runFlow:
+    file: post.yaml
+    env: { TAG: phonepe, TITLE: "Paid ₹10 to Probe Shop", TEXT: "Payment successful" }
+- extendedWaitUntil:
+    visible: "To review \\(6\\)"
+    timeout: 20000
+- assertNotVisible: "To review \\(7\\)"
+- assertNotVisible: ".*cashback.*"
+- assertNotVisible: ".*HDFC.*"
+
+# ───────── 5. Confirm and dismiss ─────────
+# Newest first, so the first Add is the probe
+- tapOn: "Add"
+- extendedWaitUntil:
+    visible: "To review \\(5\\)"
+    timeout: 20000
+- tapOn: "Dismiss"
+- extendedWaitUntil:
+    visible: "To review \\(4\\)"
+    timeout: 20000
+- tapOn: "Close"
+- tapOn: "Transactions"
+# The confirmed payment is now a real transaction, and the rest wait on the banner
+- assertVisible: ".*Probe Shop.*"
+- assertVisible: "4 payments to review"
+
+# ───────── 6. A payment while the app is in the background shows when it is opened again ─────────
+- pressKey: home
+- runFlow:
+    file: post.yaml
+    env: { TAG: gpay, TITLE: "You paid ₹30", TEXT: "to Chai Point using HDFC Bank 1234" }
+- launchApp
+- extendedWaitUntil:
+    visible: "5 payments to review"
+    timeout: 20000

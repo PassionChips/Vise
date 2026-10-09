@@ -39,7 +39,9 @@
     "web": "expo start --web",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "e2e": "maestro test .maestro"
+    "e2e": "maestro test .maestro",
+    "e2e:capture": "node scripts/e2e/capture.mjs",
+    "test:e2e-helper": "node --test scripts/e2e/notify.test.mjs"
   },
   "private": true
 }

@@ -17,6 +17,7 @@ use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 
 use crate::backup;
+use crate::capture;
 use crate::error::{AppError, ErrorBody};
 use crate::importer;
 use crate::receipt;
@@ -96,6 +97,13 @@ fn handle(
             connection,
             &parse(payload)?,
         )),
+        "captureNotification" => to_json(capture::capture(connection, &parse(payload)?)),
+        "listCaptured" => to_json(capture::list(connection)),
+        "confirmCaptured" => to_json(capture::confirm(connection, &parse(payload)?)),
+        "dismissCaptured" => {
+            capture::dismiss(connection, &parse(payload)?)?;
+            Ok(Value::Null)
+        }
         "createBackup" => to_json(backup::create(connection, &parse(payload)?)),
         "inspectBackup" => to_json(backup::inspect(&parse(payload)?)),
         // Replacing the database needs the live connection itself, so `ffi::call` handles this one.

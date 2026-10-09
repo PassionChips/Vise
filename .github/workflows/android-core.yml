@@ -58,7 +58,7 @@ jobs:
           LLVM_NM="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
           for abi in arm64-v8a x86_64; do
             symbols=$("$LLVM_NM" -D "$RUNNER_TEMP/jni/$abi/librust_core.so")
-            for name in Java_expo_modules_visecore_ViseCoreModule_nativeInit Java_expo_modules_visecore_ViseCoreModule_nativeCall; do
+            for name in Java_expo_modules_visecore_NativeCore_nativeInit Java_expo_modules_visecore_NativeCore_nativeCall; do
               echo "$symbols" | grep -q "$name" || { echo "::error::$name missing from $abi build"; exit 1; }
             done
           done

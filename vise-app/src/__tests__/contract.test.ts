@@ -6,6 +6,7 @@ import type {
   BackupInfo,
   BackupInspection,
   BackupSummary,
+  CapturedPayment,
   CategoryStatus,
   CsvExport,
   DataOverview,
@@ -212,6 +213,24 @@ const backupInspection: BackupInspection = {
   summary: backupSummary,
 };
 
+const capturedPayment: CapturedPayment = {
+  id: 1,
+  app: 'phonepe',
+  app_name: 'PhonePe',
+  direction: 'expense',
+  amount_cents: 25_000,
+  currency: 'INR',
+  merchant: 'Starbucks',
+  reference: null,
+  occurred_on: '2026-10-08',
+  occurred_at: 0,
+  excerpt: '',
+  suggested_category_id: null,
+  suggested_category_name: null,
+  possible_duplicate: false,
+  understood: true,
+};
+
 const contract = JSON.parse(
   readFileSync(resolve(__dirname, '../../rust-core/contracts/api-shapes.json'), 'utf8'),
 ) as Record<string, string[]>;
@@ -237,5 +256,6 @@ describe('TypeScript types match the rust-core JSON contract', () => {
   it('BackupInfo', () => expect(sorted(backupInfo)).toEqual(contract.BackupInfo));
   it('BackupInspection', () => expect(sorted(backupInspection)).toEqual(contract.BackupInspection));
   it('BackupSummary', () => expect(sorted(backupSummary)).toEqual(contract.BackupSummary));
+  it('CapturedPayment', () => expect(sorted(capturedPayment)).toEqual(contract.CapturedPayment));
   it('ImportSummary', () => expect(sorted(importSummary)).toEqual(contract.ImportSummary));
 });

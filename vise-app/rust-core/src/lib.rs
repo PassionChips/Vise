@@ -19,6 +19,7 @@
 pub mod api;
 pub mod backup;
 pub mod calculations;
+pub mod capture;
 pub mod db;
 pub mod error;
 pub mod ffi;

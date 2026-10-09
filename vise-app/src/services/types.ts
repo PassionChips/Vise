@@ -458,6 +458,41 @@ export interface BackupInspection {
   summary: BackupSummary | null;
 }
 
+// ----- Payment capture -----
+
+/** A payment VISE noticed from a payment app's notification, waiting for the user to confirm it. */
+export interface CapturedPayment {
+  id: number;
+  /** "googlepay", "phonepe", "revolut", "paypal", ... */
+  app: string;
+  app_name: string;
+  /** Null if only an amount was found and it was not clear which way the money went. */
+  direction: 'expense' | 'income' | null;
+  amount_cents: number | null;
+  /** Null for a bare "$"; the user's own currency is used when it is confirmed. */
+  currency: string | null;
+  merchant: string | null;
+  reference: string | null;
+  /** YYYY-MM-DD: the phone's date when the notification arrived. */
+  occurred_on: string;
+  occurred_at: number;
+  /** What the notification said, to show what was read. Emptied once resolved. */
+  excerpt: string;
+  suggested_category_id: number | null;
+  suggested_category_name: string | null;
+  /** A transaction with the same day, amount and type already exists. */
+  possible_duplicate: boolean;
+  /** False if VISE could not tell what this was: the user adds it themselves. */
+  understood: boolean;
+}
+
+export interface ConfirmCapturedInput {
+  id: number;
+  /** For an expense; defaults to the suggestion. */
+  expense_category_id?: number;
+  income_source_id?: number;
+}
+
 // ----- Errors -----
 
 export type ErrorKind = 'validation' | 'not_found' | 'invalid_request' | 'database' | 'bridge_unavailable';

@@ -129,6 +129,27 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    captured_payments (id) {
+        id -> Nullable<Integer>,
+        app -> Text,
+        direction -> Nullable<Text>,
+        amount_cents -> Nullable<BigInt>,
+        currency -> Nullable<Text>,
+        merchant -> Nullable<Text>,
+        reference -> Nullable<Text>,
+        occurred_at -> BigInt,
+        occurred_on -> Text,
+        excerpt -> Text,
+        suggested_category_id -> Nullable<Integer>,
+        possible_duplicate -> Bool,
+        status -> Text,
+        transaction_id -> Nullable<Integer>,
+        fingerprint -> Text,
+        created_at -> BigInt,
+    }
+}
+
 diesel::joinable!(app_settings -> income_sources (income_source_id));
 diesel::joinable!(auto_category_rules -> expense_categories (expense_category_id));
 diesel::joinable!(category_budgets -> budget_months (budget_month_id));
@@ -142,6 +163,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     app_settings,
     auto_category_rules,
     budget_months,
+    captured_payments,
     category_budgets,
     expense_categories,
     income_sources,

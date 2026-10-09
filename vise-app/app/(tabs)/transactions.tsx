@@ -1,5 +1,5 @@
 import { router, useIsFocused } from 'expo-router';
-import { CalendarDays, ChevronDown, Plus, SlidersHorizontal, X } from 'lucide-react-native';
+import { BellRing, CalendarDays, ChevronDown, ChevronRight, Plus, SlidersHorizontal, X } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
@@ -47,7 +47,8 @@ import {
 import { BalanceBlock } from '../../src/features/transactions/BalanceBlock';
 import { CalendarSheet } from '../../src/features/transactions/CalendarSheet';
 import { CollapsingHeader } from '../../src/features/transactions/CollapsingHeader';
-import { addTransaction, deleteTransaction } from '../../src/services/viseCore';
+import { addTransaction, deleteTransaction, listCaptured } from '../../src/services/viseCore';
+import { useCoreQuery } from '../../src/data/store';
 import type { ExpenseCategory, IncomeSource, Transaction } from '../../src/services/types';
 import { color, spacing, themed, type } from '../../src/theme/tokens';
 import { useTheme } from '../../src/theme/ThemeProvider';
@@ -143,6 +144,13 @@ function Transactions({ data, month, day, onMonth, onDay, onClearDay }: Transact
   // A transaction saved under a date outside this month: say where it went, and offer to go there.
   const savedDate = useSavedTransactionDate();
   const focused = useIsFocused();
+  // Payments noticed from payment apps, waiting for the user. They arrive while the app is closed, so look again on return.
+  const waiting = useCoreQuery(listCaptured);
+  const waitingCount = waiting.data?.length ?? 0;
+  useEffect(() => {
+    if (focused) waiting.reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focused]);
   const elsewhere = savedDate != null && monthOf(savedDate) !== month;
   useEffect(() => {
     if (savedDate == null) return;
@@ -308,7 +316,25 @@ function Transactions({ data, month, day, onMonth, onDay, onClearDay }: Transact
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         initialNumToRender={8}
-        ListHeaderComponent={failure ? <Alert type="error" title="That didn’t work" description={failure} /> : null}
+        ListHeaderComponent={
+          <>
+            {failure && <Alert type="error" title="That didn’t work" description={failure} />}
+            {waitingCount > 0 && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${waitingCount} ${waitingCount === 1 ? 'payment' : 'payments'} to review`}
+                onPress={() => router.push('/captured')}
+                style={({ pressed }) => [styles.review, pressed && styles.pressed]}
+              >
+                <BellRing size={18} color={color.brand.primary} />
+                <Text style={[type.bodyMedium, styles.primary, styles.flex]}>
+                  {waitingCount} {waitingCount === 1 ? 'payment' : 'payments'} to review
+                </Text>
+                <ChevronRight size={18} color={color.content.secondary} />
+              </Pressable>
+            )}
+          </>
+        }
         renderItem={({ item }) =>
           item.kind === 'day' ? (
             <View style={styles.day}>
@@ -626,6 +652,17 @@ const styles = themed(() => ({
     gap: spacing[8],
     minHeight: 32,
     paddingHorizontal: spacing[12],
+    borderRadius: 16,
+    backgroundColor: color.brand.subtle,
+    borderWidth: 1,
+    borderColor: color.brand.primary,
+  },
+  review: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[12],
+    minHeight: 48,
+    paddingHorizontal: spacing[16],
     borderRadius: 16,
     backgroundColor: color.brand.subtle,
     borderWidth: 1,

@@ -49,6 +49,10 @@ public class ViseCoreModule: Module {
       return String(cString: reply)
     }
 
+    // Reading other apps' payment notifications is an Android feature; iOS does not allow it.
+    Function("isPaymentCaptureEnabled") { () -> Bool in false }
+    Function("openPaymentCaptureSettings") {}
+
     // On-device OCR with Apple's Vision framework. Returns a JSON array of
     // {text, left, top, right, bottom} (top-left origin, 0...1), one entry per line of text;
     // rust-core joins the lines that sit on the same row. The photo never leaves the phone.

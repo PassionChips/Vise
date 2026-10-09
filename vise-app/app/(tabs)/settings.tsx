@@ -2,6 +2,7 @@ import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import {
   ArchiveRestore,
+  BellRing,
   Calendar,
   Download,
   Euro,
@@ -29,6 +30,7 @@ import { describeErasure } from '../../src/data/erasure';
 import { downloadDataCsv, removeExportFiles } from '../../src/data/exportData';
 import { AVATARS } from '../../src/data/avatars';
 import { describeLastBackup } from '../../src/data/backupNames';
+import { captureEnabled, captureSupported } from '../../src/services/capture';
 import { useCoreQuery } from '../../src/data/store';
 import { currencyByCode, type CurrencyCode } from '../../src/features/onboarding/data';
 import { formatMoney } from '../../src/format';
@@ -81,6 +83,17 @@ export default function SettingsScreen() {
               <SettingsSectionHeader title="Budgets" />
               <SettingsGroup>
                 <SettingsRow type="navigation" icon={TriangleAlert} label="Warning threshold" value={`${s.warning_threshold_percent}%`} onPress={edit('threshold')} />
+              </SettingsGroup>
+
+              <SettingsSectionHeader title="Automatic" />
+              <SettingsGroup>
+                <SettingsRow
+                  type="navigation"
+                  icon={BellRing}
+                  label="Payment notifications"
+                  value={captureSupported() ? (captureEnabled() ? 'On' : 'Off') : 'Android only'}
+                  onPress={() => router.push('/captured')}
+                />
               </SettingsGroup>
 
               <SettingsSectionHeader title="Data" />

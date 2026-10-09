@@ -185,5 +185,22 @@
     "income_sources",
     "last_transaction_date",
     "transactions"
+  ],
+  "CapturedPayment": [
+    "amount_cents",
+    "app",
+    "app_name",
+    "currency",
+    "direction",
+    "excerpt",
+    "id",
+    "merchant",
+    "occurred_at",
+    "occurred_on",
+    "possible_duplicate",
+    "reference",
+    "suggested_category_id",
+    "suggested_category_name",
+    "understood"
   ]
 }

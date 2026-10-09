@@ -18,8 +18,8 @@ use diesel::sqlite::SqliteConnection;
 use serde::{Deserialize, Serialize};
 
 use crate::db::schema::{
-    app_settings, auto_category_rules, budget_months, category_budgets, expense_categories,
-    income_sources, revolut_accounts, sync_state, transactions,
+    app_settings, auto_category_rules, budget_months, captured_payments, category_budgets,
+    expense_categories, income_sources, revolut_accounts, sync_state, transactions,
 };
 use crate::error::AppError;
 use crate::money::format_cents;
@@ -225,6 +225,8 @@ pub fn delete_all_data(
 
     let counts = connection.transaction::<DeletedCounts, AppError, _>(|connection| {
         // Children before parents, so foreign keys are never violated.
+        // The inbox first: it points at transactions and categories.
+        diesel::delete(captured_payments::table).execute(connection)?;
         let transactions = diesel::delete(transactions::table).execute(connection)?;
         let category_limits = diesel::delete(category_budgets::table).execute(connection)?;
         let month_budgets = diesel::delete(budget_months::table).execute(connection)?;
