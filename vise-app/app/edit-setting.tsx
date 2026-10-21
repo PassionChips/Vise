@@ -1,12 +1,12 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { X } from 'lucide-react-native';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Alert } from '../src/components/Alert';
-import { IconButton, PrimaryButton } from '../src/components/Buttons';
+import { PrimaryButton } from '../src/components/Buttons';
 import { AmountInput, SelectField, TextField } from '../src/components/Inputs';
+import { SAVE_IN_TOP_BAR, TopAppBar } from '../src/components/Layout';
 import { QueryState } from '../src/components/QueryState';
 import { useCoreQuery } from '../src/data/store';
 import { centsToAmount } from '../src/format';
@@ -14,7 +14,7 @@ import { resolveSource, sourceOptions } from '../src/data/pickers';
 import { currencies, currencyByCode, type CurrencyCode } from '../src/features/onboarding/data';
 import { getSettings, listIncomeSources, updateSettings, ViseError } from '../src/services/viseCore';
 import type { IncomeSource, Settings, UpdateSettingsInput } from '../src/services/types';
-import { color, spacing, themed, type } from '../src/theme/tokens';
+import { color, spacing, themed } from '../src/theme/tokens';
 import { useTheme } from '../src/theme/ThemeProvider';
 
 type Field = 'name' | 'currency' | 'income' | 'source' | 'threshold';
@@ -36,13 +36,8 @@ export default function EditSettingScreen() {
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
-      <View style={styles.bar}>
-        <View style={styles.barSide} />
-        <Text accessibilityRole="header" style={[type.headingMedium, styles.title]}>{TITLES[kind]}</Text>
-        <View style={styles.barSide}>
-          <IconButton icon={X} accessibilityLabel="Close" onPress={() => router.back()} />
-        </View>
-      </View>
+      {/* Once loaded, the form draws the bar itself so it can hold Save. */}
+      {data.data === undefined && <TopAppBar variant="form" title={TITLES[kind]} />}
       <QueryState query={data}>{({ settings, sources }) => <Form kind={kind} settings={settings} sources={sources} />}</QueryState>
     </SafeAreaView>
   );
@@ -98,58 +93,60 @@ function Form({ kind, settings, sources }: { kind: Field; settings: Settings; so
   }
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-        {kind === 'name' && <TextField label="Name" value={text} onChangeText={changeText} placeholder="Your name" error={error ?? undefined} helperText="Leave blank to remove it." />}
-        {kind === 'income' && (
-          <AmountInput
-            label="Expected monthly income"
-            currency={settings.currency}
-            currencySymbol={currencyByCode(settings.currency as CurrencyCode)?.symbol ?? settings.currency}
-            value={text}
-            onChangeText={changeText}
-            helperText="Used for “left to spend” until your real income is recorded. Leave blank to clear."
-            error={error ?? undefined}
-          />
+    <>
+      <TopAppBar variant="form" title={TITLES[kind]} onSave={save} saving={saving} />
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
+          {kind === 'name' && <TextField label="Name" value={text} onChangeText={changeText} placeholder="Your name" error={error ?? undefined} helperText="Leave blank to remove it." />}
+          {kind === 'income' && (
+            <AmountInput
+              label="Expected monthly income"
+              currency={settings.currency}
+              currencySymbol={currencyByCode(settings.currency as CurrencyCode)?.symbol ?? settings.currency}
+              value={text}
+              onChangeText={changeText}
+              helperText="Used for “left to spend” until your real income is recorded. Leave blank to clear."
+              error={error ?? undefined}
+            />
+          )}
+          {kind === 'threshold' && (
+            <TextField
+              label="Warn when a budget reaches (%)"
+              value={text}
+              onChangeText={(v) => changeText(v.replace(/[^0-9]/g, ''))}
+              helperText="Budgets show “near limit” from this percentage of their limit."
+              error={error ?? undefined}
+            />
+          )}
+          {kind === 'currency' && (
+            <SelectField
+              label="Currency"
+              options={currencies.map((c) => ({ value: c.code, label: `${c.code} — ${c.name} · ${c.symbol}` }))}
+              value={choice}
+              onChange={changeChoice}
+              error={error ?? undefined}
+            />
+          )}
+          {kind === 'source' && (
+            <SelectField label="Income source" options={sourceOptions(sources)} value={choice} onChange={changeChoice} error={error ?? undefined} />
+          )}
+          {kind === 'currency' && (
+            <Alert type="info" title="Existing transactions keep their currency" description="VISE doesn’t convert amounts. Changing currency affects new entries and what the screens total up." />
+          )}
+        </ScrollView>
+        {!SAVE_IN_TOP_BAR && (
+          <View style={styles.footer}>
+            <PrimaryButton label="Save" loading={saving} onPress={save} />
+          </View>
         )}
-        {kind === 'threshold' && (
-          <TextField
-            label="Warn when a budget reaches (%)"
-            value={text}
-            onChangeText={(v) => changeText(v.replace(/[^0-9]/g, ''))}
-            helperText="Budgets show “near limit” from this percentage of their limit."
-            error={error ?? undefined}
-          />
-        )}
-        {kind === 'currency' && (
-          <SelectField
-            label="Currency"
-            options={currencies.map((c) => ({ value: c.code, label: `${c.code} — ${c.name} · ${c.symbol}` }))}
-            value={choice}
-            onChange={changeChoice}
-            error={error ?? undefined}
-          />
-        )}
-        {kind === 'source' && (
-          <SelectField label="Income source" options={sourceOptions(sources)} value={choice} onChange={changeChoice} error={error ?? undefined} />
-        )}
-        {kind === 'currency' && (
-          <Alert type="info" title="Existing transactions keep their currency" description="VISE doesn’t convert amounts. Changing currency affects new entries and what the screens total up." />
-        )}
-      </ScrollView>
-      <View style={styles.footer}>
-        <PrimaryButton label="Save" loading={saving} onPress={save} />
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </>
   );
 }
 
 const styles = themed(() => ({
   flex: { flex: 1 },
   screen: { flex: 1, backgroundColor: color.surface.background },
-  bar: { height: 56, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing[16] },
-  barSide: { width: 44, alignItems: 'flex-end' },
-  title: { flex: 1, textAlign: 'center', color: color.content.primary },
   form: { gap: spacing[16], paddingHorizontal: spacing[24], paddingTop: spacing[8], paddingBottom: spacing[24] },
   footer: { paddingHorizontal: spacing[24], paddingBottom: spacing[16] },
 }));

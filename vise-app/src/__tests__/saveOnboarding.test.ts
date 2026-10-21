@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const complete = vi.hoisted(() => vi.fn());
-vi.mock('../services/viseCore', () => ({ completeOnboarding: complete }));
+const update = vi.hoisted(() => vi.fn());
+vi.mock('../services/viseCore', () => ({ completeOnboarding: complete, updateSettings: update }));
 vi.mock('../components/CategoryIcon', () => ({ categoryIcon: () => null }));
 
 import { saveOnboarding, type OnboardingAnswers } from '../features/onboarding/saveOnboarding';
@@ -24,6 +25,19 @@ const answers = (patch: Partial<OnboardingAnswers> = {}): OnboardingAnswers => (
 describe('saveOnboarding', () => {
   beforeEach(() => {
     complete.mockReset().mockResolvedValue({});
+    update.mockReset().mockResolvedValue({});
+  });
+
+  it('keeps new installs on the dark theme, saved before completing so the theme never flashes', async () => {
+    await saveOnboarding(answers());
+    expect(update).toHaveBeenCalledWith({ theme: 'dark' });
+    expect(update.mock.invocationCallOrder[0]).toBeLessThan(complete.mock.invocationCallOrder[0]);
+  });
+
+  it('still saves the answers if saving the theme fails', async () => {
+    update.mockRejectedValue(new Error('disk full'));
+    await expect(saveOnboarding(answers())).resolves.toBeUndefined();
+    expect(complete).toHaveBeenCalledTimes(1);
   });
 
   it('sends every answer to rust-core in a single call', async () => {

@@ -1,4 +1,4 @@
-import { completeOnboarding } from '../../services/viseCore';
+import { completeOnboarding, updateSettings } from '../../services/viseCore';
 import type { TransactionType } from '../../services/types';
 import { categoryByName, isoDate, type CurrencyCode } from './data';
 import { todayIso } from '../../format';
@@ -31,6 +31,13 @@ const category = (name: string) => ({ name, icon: categoryByName(name).iconName 
  */
 export async function saveOnboarding(answers: OnboardingAnswers) {
   const tx = answers.transaction;
+  // New installs keep the dark look they onboarded in. Saved first so the app never flashes the
+  // device theme when onboarding completes. Cosmetic, so a failure is ignored (it stays "system").
+  try {
+    await updateSettings({ theme: 'dark' });
+  } catch {
+    // Settings → Appearance can still change it.
+  }
   await completeOnboarding({
     currency: answers.currency,
     today: todayIso(),

@@ -26,14 +26,47 @@ describe('Light and Dark palettes (Figma "Semantic" collection)', () => {
     expect(paths(palettes.dark).sort()).toEqual(paths(palettes.light).sort());
   });
 
-  it('use the Figma values for the key tokens', () => {
-    expect(palettes.light.surface.background).toBe('#f7f9f7');
-    expect(palettes.dark.surface.background).toBe('#101713');
-    expect(palettes.dark.surface.default).toBe('#19221c');
-    expect(palettes.dark.content.primary).toBe('#f2f6f2');
-    expect(palettes.dark.brand.primary).toBe('#3dba6a');
-    expect(palettes.dark.feedback.error).toBe('#f07167');
-    expect(palettes.dark.finance.spending).toBe('#f2f6f2');
+  it('use the glass-theme values for the key tokens', () => {
+    expect(palettes.light.surface.background).toBe('#eef3f0');
+    expect(palettes.dark.surface.background).toBe('#070b09');
+    expect(palettes.dark.surface.default).toBe('#111915');
+    expect(palettes.dark.content.primary).toBe('#eef4f1');
+    expect(palettes.dark.brand.primary).toBe('#34d399');
+    expect(palettes.dark.feedback.error).toBe('#f87171');
+    expect(palettes.dark.finance.spending).toBe('#eef4f1');
+  });
+
+  // WCAG 2.1 contrast, for text that must stay readable on the darkest and lightest surfaces.
+  const luminance = (hex: string) => {
+    const [r, g, b] = [1, 3, 5].map((i) => {
+      const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const contrast = (a: string, b: string) => {
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+  };
+
+  it.each(['light', 'dark'] as const)('keeps body text at 4.5:1 or better in %s mode', (scheme) => {
+    const p = palettes[scheme];
+    const texts = [
+      p.content.primary,
+      p.content.secondary,
+      p.brand.primary,
+      p.feedback.error,
+      p.feedback.success,
+      p.finance.remaining,
+      p.finance.underBudget,
+      p.finance.overBudget,
+    ];
+    for (const surface of [p.surface.background, p.surface.default]) {
+      for (const text of texts) {
+        expect(contrast(text, surface), `${text} on ${surface}`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+    expect(contrast(p.content.onBrand, p.brand.primary)).toBeGreaterThanOrEqual(4.5);
   });
 
   it('every dark token differs from light except where Figma reuses a value', () => {
@@ -65,7 +98,7 @@ describe('switching the colour scheme', () => {
     expect(created.count).toBe(builds); // cached
 
     applyColorScheme('dark');
-    expect(styles.card.backgroundColor).toBe('#19221c');
+    expect(styles.card.backgroundColor).toBe('#111915');
     applyColorScheme('light');
     expect(styles.card.backgroundColor).toBe('#ffffff');
   });

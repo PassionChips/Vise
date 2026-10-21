@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { color, radius, spacing, themed, type } from '../theme/tokens';
 import { IconButton } from './Buttons';
+import { GlassSurface, useBlurHost } from './Glass';
 
 
 // ----- Overlay/BottomSheet -----
@@ -23,14 +24,14 @@ export function BottomSheet({ visible, title, onClose, children }: BottomSheetPr
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.scrim} accessibilityLabel="Close" onPress={onClose} />
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing[16] }]}>
+      <GlassSurface strong intensity={60} style={[styles.sheet, { paddingBottom: insets.bottom + spacing[16] }]}>
         <View style={styles.handle} />
         <View style={styles.sheetHeader}>
           <Text accessibilityRole="header" style={[type.headingMedium, styles.primary]}>{title}</Text>
           <IconButton icon={X} accessibilityLabel="Close" onPress={onClose} />
         </View>
         {children}
-      </View>
+      </GlassSurface>
     </Modal>
   );
 }
@@ -86,7 +87,7 @@ export function ConfirmDialog({ visible, title, message, confirmLabel, onConfirm
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={styles.dialogScrim}>
-        <View accessibilityViewIsModal style={styles.dialog}>
+        <GlassSurface accessibilityViewIsModal strong intensity={60} style={styles.dialog}>
           <View style={styles.dialogIcon}>
             <Trash2 size={20} strokeWidth={2} color={color.feedback.error} />
           </View>
@@ -119,7 +120,7 @@ export function ConfirmDialog({ visible, title, message, confirmLabel, onConfirm
               )}
             </Pressable>
           </View>
-        </View>
+        </GlassSurface>
       </View>
     </Modal>
   );
@@ -135,8 +136,10 @@ interface ToastProps {
 
 /** Ink bar anchored above the bottom navigation. */
 export function Toast({ message, actionLabel, onAction }: ToastProps) {
+  // Inside the tabs, sit above the floating tab bar.
+  const bottomInset = useBlurHost()?.bottomInset ?? 0;
   return (
-    <View accessibilityLiveRegion="polite" style={styles.toast}>
+    <View accessibilityLiveRegion="polite" style={[styles.toast, { bottom: spacing[16] + bottomInset }]}>
       <Trash2 size={20} strokeWidth={2} color={color.content.onBrand} />
       <Text style={[type.bodyMedium, styles.toastText]}>{message}</Text>
       {actionLabel && (
@@ -155,9 +158,11 @@ const styles = themed(() => ({
   sheet: {
     paddingTop: spacing[8],
     paddingHorizontal: spacing[24],
-    backgroundColor: color.surface.default,
-    borderTopLeftRadius: radius.lg + 8,
-    borderTopRightRadius: radius.lg + 8,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderBottomWidth: 0,
   },
   handle: {
     alignSelf: 'center',
@@ -183,9 +188,7 @@ const styles = themed(() => ({
     maxWidth: '90%',
     gap: spacing[16],
     padding: spacing[20],
-    borderRadius: radius.lg + 8,
-    backgroundColor: color.surface.default,
-    boxShadow: '0px 12px 32px rgba(15, 23, 18, 0.12)',
+    borderRadius: radius.xl,
   },
   dialogIcon: {
     width: 40,
@@ -197,7 +200,7 @@ const styles = themed(() => ({
   },
   dialogText: { gap: spacing[8] },
   dialogButtons: { flexDirection: 'row', gap: spacing[8] },
-  dialogButton: { flex: 1, height: 48, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  dialogButton: { flex: 1, height: 48, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center' },
   cancel: { backgroundColor: color.surface.variant },
   destructive: { backgroundColor: color.feedback.error },
   toast: {
@@ -210,9 +213,9 @@ const styles = themed(() => ({
     alignItems: 'center',
     gap: spacing[12],
     paddingHorizontal: spacing[16],
-    borderRadius: radius.sm,
+    borderRadius: radius.md,
     backgroundColor: color.content.primary,
-    boxShadow: '0px 4px 12px rgba(15, 23, 18, 0.08)',
+    boxShadow: color.glass.shadow,
   },
   toastText: { flex: 1, color: color.content.onBrand },
 }));

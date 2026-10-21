@@ -1,12 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Trash2, X } from 'lucide-react-native';
+import { Trash2 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Alert } from '../src/components/Alert';
-import { IconButton, PrimaryButton } from '../src/components/Buttons';
+import { PrimaryButton } from '../src/components/Buttons';
 import { AmountInput, SelectField } from '../src/components/Inputs';
+import { SAVE_IN_TOP_BAR, TopAppBar } from '../src/components/Layout';
 import { ConfirmDialog } from '../src/components/Overlays';
 import { QueryState } from '../src/components/QueryState';
 import { activeErrors, clearError, fixSummary } from '../src/data/formErrors';
@@ -103,15 +104,7 @@ function Form({ data, editingId }: { data: FinanceData; editingId: number | null
 
   return (
     <>
-      <View style={styles.bar}>
-        <View style={styles.barSide} />
-        <Text accessibilityRole="header" style={[type.headingMedium, styles.title]}>
-          {existing ? 'Edit budget' : 'New budget'}
-        </Text>
-        <View style={styles.barSide}>
-          <IconButton icon={X} accessibilityLabel="Close" onPress={() => router.back()} />
-        </View>
-      </View>
+      <TopAppBar variant="form" title={existing ? 'Edit budget' : 'New budget'} onSave={save} saving={saving} />
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
@@ -148,9 +141,11 @@ function Form({ data, editingId }: { data: FinanceData; editingId: number | null
           )}
         </ScrollView>
 
-        <View style={styles.footer}>
-          <PrimaryButton label={existing ? 'Save changes' : 'Create budget'} loading={saving} onPress={save} />
-        </View>
+        {!SAVE_IN_TOP_BAR && (
+          <View style={styles.footer}>
+            <PrimaryButton label={existing ? 'Save changes' : 'Create budget'} loading={saving} onPress={save} />
+          </View>
+        )}
       </KeyboardAvoidingView>
 
       <ConfirmDialog
@@ -172,9 +167,6 @@ function Form({ data, editingId }: { data: FinanceData; editingId: number | null
 const styles = themed(() => ({
   flex: { flex: 1 },
   screen: { flex: 1, backgroundColor: color.surface.background },
-  bar: { height: 56, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing[16] },
-  barSide: { width: 44, alignItems: 'flex-end' },
-  title: { flex: 1, textAlign: 'center', color: color.content.primary },
   form: { gap: spacing[16], paddingHorizontal: spacing[24], paddingTop: spacing[8], paddingBottom: spacing[24] },
   delete: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing[8], height: 48 },
   footer: { paddingHorizontal: spacing[24], paddingBottom: spacing[16] },

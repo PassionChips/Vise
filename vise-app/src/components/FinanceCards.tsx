@@ -7,12 +7,13 @@ import {
   Wallet,
 } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { formatMoney, percentOf } from '../format';
 import { color, radius, spacing, themed, type } from '../theme/tokens';
 import { BudgetStatus, budgetHealth, healthColor } from './BudgetStatus';
 import { Card } from './Card';
+import { GlassSurface, PressableScale } from './Glass';
 import { CategoryIcon } from './CategoryIcon';
 import { ProgressBar } from './ProgressBar';
 
@@ -85,16 +86,12 @@ interface QuickActionProps {
 
 export function QuickAction({ label, icon: Icon, iconColor = color.content.primary, onPress }: QuickActionProps) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.quickAction}>
-      {({ pressed }) => (
-        <>
-          <View style={[styles.quickTile, pressed && styles.quickTilePressed]}>
-            <Icon size={22} strokeWidth={2} color={iconColor} />
-          </View>
-          <Text numberOfLines={1} style={[type.bodySmall, styles.primary, styles.center]}>{label}</Text>
-        </>
-      )}
-    </Pressable>
+    <PressableScale accessibilityRole="button" accessibilityLabel={label} onPress={onPress} scaleTo={0.92} style={styles.quickAction}>
+      <GlassSurface style={styles.quickTile}>
+        <Icon size={22} strokeWidth={2} color={iconColor} />
+      </GlassSurface>
+      <Text numberOfLines={1} style={[type.bodySmall, styles.primary, styles.center]}>{label}</Text>
+    </PressableScale>
   );
 }
 
@@ -120,8 +117,9 @@ export function CategoryBudgetCard({ name, icon, spentCents, limitCents, warning
   const statusWords = { healthy: 'on track', approaching: 'near limit', over: 'over budget' }[health];
 
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
+      scaleTo={onPress ? undefined : 1}
       accessibilityLabel={`${name}, ${money(spentCents)} of ${money(limitCents)}, ${percentUsed} percent used, ${statusWords}`}
       disabled={!onPress}
       onPress={onPress}
@@ -147,7 +145,7 @@ export function CategoryBudgetCard({ name, icon, spentCents, limitCents, warning
           <Text style={[type.numericSmall, styles.secondary]}>{percentUsed}% used</Text>
         </View>
       </Card>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -169,14 +167,16 @@ export function TransactionRow({ title, subtitle, amountCents, icon, currency, o
   const income = amountCents > 0;
   const amount = formatMoney(amountCents, { sign: 'always', currency });
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
+      scaleTo={0.98}
       accessibilityLabel={`${title}, ${subtitle}, ${income ? 'income' : 'expense'} ${formatMoney(Math.abs(amountCents), { currency })}`}
       onPress={onPress}
       onLongPress={onLongPress}
       accessibilityActions={onLongPress ? [{ name: 'longpress', label: 'Edit' }] : undefined}
       onAccessibilityAction={onLongPress ? () => onLongPress() : undefined}
-      style={({ pressed }) => [styles.transaction, pressed && styles.transactionPressed]}
+      style={styles.transaction}
+      pressedStyle={styles.transactionPressed}
     >
       <View style={[styles.tile40, { borderRadius: radius.full, backgroundColor: income ? color.feedback.successSubtle : color.surface.variant }]}>
         <CategoryIcon name={icon} color={income ? color.brand.primary : color.content.primary} />
@@ -186,7 +186,7 @@ export function TransactionRow({ title, subtitle, amountCents, icon, currency, o
         <Text numberOfLines={1} style={[type.bodySmall, styles.secondary]}>{subtitle}</Text>
       </View>
       <Text style={[type.numericSmall, { color: income ? color.finance.remaining : color.finance.spending }]}>{amount}</Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -265,16 +265,12 @@ const styles = themed(() => ({
   },
   quickAction: { width: 76, alignItems: 'center', gap: spacing[8] },
   quickTile: {
-    width: 52,
-    height: 52,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: color.border.default,
-    backgroundColor: color.surface.default,
+    width: 56,
+    height: 56,
+    borderRadius: radius.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  quickTilePressed: { backgroundColor: color.surface.variant },
   list: { padding: 4 },
   transaction: {
     flexDirection: 'row',

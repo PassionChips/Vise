@@ -1,13 +1,14 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Camera, Image as ImageIcon, ScanLine, X } from 'lucide-react-native';
+import { Camera, Image as ImageIcon, ScanLine } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Alert } from '../src/components/Alert';
-import { IconButton, PrimaryButton, SecondaryButton } from '../src/components/Buttons';
+import { PrimaryButton, SecondaryButton } from '../src/components/Buttons';
 import { SegmentedControl } from '../src/components/Controls';
 import { AmountInput, DateField, SelectField, TextField } from '../src/components/Inputs';
+import { SAVE_IN_TOP_BAR, TopAppBar } from '../src/components/Layout';
 import { BottomSheet, SheetAction } from '../src/components/Overlays';
 import { QueryState } from '../src/components/QueryState';
 import { activeErrors, clearError, fixSummary } from '../src/data/formErrors';
@@ -20,7 +21,7 @@ import { currencyByCode, type CurrencyCode } from '../src/features/onboarding/da
 import { addTransaction, listTransactions, updateTransaction, ViseError } from '../src/services/viseCore';
 import type { ReceiptScan, Transaction } from '../src/services/types';
 import { useCoreQuery } from '../src/data/store';
-import { color, spacing, themed, type } from '../src/theme/tokens';
+import { color, spacing, themed } from '../src/theme/tokens';
 import { useTheme } from '../src/theme/ThemeProvider';
 
 const KINDS = ['Expense', 'Income'] as const;
@@ -215,15 +216,12 @@ function Form({
 
   return (
     <>
-      <View style={styles.bar}>
-        <View style={styles.barSide} />
-        <Text accessibilityRole="header" style={[type.headingMedium, styles.title]}>
-          {existing ? 'Edit transaction' : expense ? 'Add expense' : 'Add income'}
-        </Text>
-        <View style={styles.barSide}>
-          <IconButton icon={X} accessibilityLabel="Close" onPress={() => router.back()} />
-        </View>
-      </View>
+      <TopAppBar
+        variant="form"
+        title={existing ? 'Edit transaction' : expense ? 'Add expense' : 'Add income'}
+        onSave={save}
+        saving={saving}
+      />
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
@@ -284,13 +282,15 @@ function Form({
           <DateField label="Date" displayValue={displayDate(date)} error={errors.date} />
         </ScrollView>
 
-        <View style={styles.footer}>
-          <PrimaryButton
-            label={existing ? 'Save changes' : expense ? 'Save expense' : 'Save income'}
-            loading={saving}
-            onPress={save}
-          />
-        </View>
+        {!SAVE_IN_TOP_BAR && (
+          <View style={styles.footer}>
+            <PrimaryButton
+              label={existing ? 'Save changes' : expense ? 'Save expense' : 'Save income'}
+              loading={saving}
+              onPress={save}
+            />
+          </View>
+        )}
       </KeyboardAvoidingView>
 
       <BottomSheet visible={scanSheet} title="Scan receipt" onClose={() => setScanSheet(false)}>
@@ -304,9 +304,6 @@ function Form({
 const styles = themed(() => ({
   flex: { flex: 1 },
   screen: { flex: 1, backgroundColor: color.surface.background },
-  bar: { height: 56, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing[16] },
-  barSide: { width: 44, alignItems: 'flex-end' },
-  title: { flex: 1, textAlign: 'center', color: color.content.primary },
   form: { gap: spacing[16], paddingHorizontal: spacing[24], paddingTop: spacing[8], paddingBottom: spacing[24] },
   footer: { paddingHorizontal: spacing[24], paddingBottom: spacing[16] },
 }));

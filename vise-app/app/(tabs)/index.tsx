@@ -3,7 +3,6 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Bell,
-  Calendar,
   ChartNoAxesCombined,
   ChevronRight,
   Plus,
@@ -17,7 +16,8 @@ import { Avatar } from '../../src/components/Avatar';
 import { IconButton, PrimaryButton, TertiaryButton } from '../../src/components/Buttons';
 import { Card } from '../../src/components/Card';
 import { SpendingChart } from '../../src/components/Charts';
-import { SegmentedControl } from '../../src/components/Controls';
+import { MonthPicker, SegmentedControl } from '../../src/components/Controls';
+import { FadeIn } from '../../src/components/Glass';
 import {
   CategoryBudgetCard,
   FinancialSummaryCard,
@@ -57,15 +57,21 @@ function greeting(hour: number): string {
 
 export default function DashboardScreen() {
   useTheme();
-  const month = currentMonth();
+  const [month, setMonth] = useState(currentMonth);
   const finance = useFinance(month);
 
   return (
-    <QueryState query={finance}>{(data) => <Dashboard data={data} />}</QueryState>
+    <QueryState query={finance}>
+      {(data) => (
+        <FadeIn trigger={data.month} style={styles.flex}>
+          <Dashboard data={data} onMonthChange={setMonth} />
+        </FadeIn>
+      )}
+    </QueryState>
   );
 }
 
-function Dashboard({ data }: { data: FinanceData }) {
+function Dashboard({ data, onMonthChange }: { data: FinanceData; onMonthChange: (month: string) => void }) {
   const { month, settings, summary, transactions, categories, sources } = data;
   const currency = settings.currency;
   const [addOpen, setAddOpen] = useState(false);
@@ -101,11 +107,10 @@ function Dashboard({ data }: { data: FinanceData }) {
       </View>
 
       <View style={styles.monthSelector}>
-        <View style={styles.monthLabel}>
-          <Calendar size={20} strokeWidth={2} color={color.content.primary} />
-          <Text style={[type.button, styles.primary]}>{monthLabel(month)}</Text>
-        </View>
-        <Text style={[type.bodySmall, styles.secondary]}>{daysLeftInMonth(month)} days left</Text>
+        <MonthPicker value={month} onChange={onMonthChange} latest={currentMonth()} />
+        {month === currentMonth() && (
+          <Text style={[type.bodySmall, styles.secondary]}>{daysLeftInMonth(month)} days left</Text>
+        )}
       </View>
 
       <View style={styles.grid}>
@@ -296,8 +301,8 @@ const styles = themed(() => ({
   secondary: { color: color.content.secondary },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing[12] },
   greeting: { flex: 1 },
+  flex: { flex: 1 },
   monthSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  monthLabel: { flexDirection: 'row', alignItems: 'center', gap: spacing[8] },
   grid: { gap: spacing[12] },
   gridRow: { flexDirection: 'row', gap: spacing[12] },
   quickActions: { flexDirection: 'row', justifyContent: 'space-between' },

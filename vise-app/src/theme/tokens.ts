@@ -1,61 +1,92 @@
-// Design tokens from the Figma "VISE — Design System" file.
-// Names mirror the Figma variables, e.g. `color.content.primary` ↔ Content/Primary.
-// Colours come from the "Semantic" collection, which has a Light and a Dark mode.
+// Design tokens. Structure and names follow the Figma "VISE — Design System" file
+// (e.g. `color.content.primary` ↔ Content/Primary); the values are the dark-first
+// "glass" look: deep green-black surfaces, emerald accent, translucent cards.
+// Every colour in the app comes from here, in a Light and a Dark palette with the same keys.
 
 import { StyleSheet, type TextStyle } from 'react-native';
 
 export type ColorScheme = 'light' | 'dark';
 
 const light = {
-  brand: { primary: '#16833b', pressed: '#0b5d2a', subtle: '#f1f9f4' },
-  surface: { background: '#f7f9f7', default: '#ffffff', variant: '#f0f3f0' },
-  content: { primary: '#17231b', secondary: '#6b756e', disabled: '#a5b0a8', onBrand: '#ffffff' },
-  border: { default: '#e3e9e4', focus: '#17231b' },
+  brand: { primary: '#047857', pressed: '#065f46', subtle: '#e3f5ec' },
+  surface: { background: '#eef3f0', default: '#ffffff', variant: '#e4ebe7' },
+  content: { primary: '#0f1a14', secondary: '#5b6862', disabled: '#a3aea8', onBrand: '#ffffff' },
+  border: { default: '#dde5e0', focus: '#047857' },
   feedback: {
-    success: '#16833b',
-    successSubtle: '#f1f9f4',
+    success: '#047857',
+    successSubtle: '#e3f5ec',
     warning: '#b45309',
-    warningSubtle: '#fef3e2',
-    error: '#c2342b',
-    errorSubtle: '#fdecea',
-    info: '#159a91',
-    infoSubtle: '#e3f5f3',
+    warningSubtle: '#fdf1de',
+    error: '#c0322a',
+    errorSubtle: '#fce9e7',
+    info: '#0f766e',
+    infoSubtle: '#dff3f0',
   },
   finance: {
-    remaining: '#16833b',
-    spending: '#17231b',
-    underBudget: '#16833b',
-    overBudget: '#c2342b',
-    predicted: '#159a91',
+    remaining: '#047857',
+    spending: '#0f1a14',
+    underBudget: '#047857',
+    overBudget: '#c0322a',
+    predicted: '#0f766e',
   },
-  overlay: { scrim: 'rgba(16, 23, 19, 0.6)' },
+  overlay: { scrim: 'rgba(10, 18, 14, 0.48)' },
+  /** Translucent "glass" containers: cards, the tab bar and sheets. */
+  glass: {
+    /** Card fill over the blur. */
+    fill: 'rgba(255, 255, 255, 0.68)',
+    /** Tab bar and sheets: more opaque so text over busy content stays readable. */
+    fillStrong: 'rgba(255, 255, 255, 0.86)',
+    border: 'rgba(15, 26, 20, 0.08)',
+    /** 1px light edge along the top of a glass container. */
+    highlight: 'rgba(255, 255, 255, 0.95)',
+    /** Soft ambient glows behind the content, which the glass blurs. */
+    glowPrimary: 'rgba(16, 185, 129, 0.18)',
+    glowSecondary: 'rgba(45, 212, 191, 0.14)',
+    /** Lift under glass containers. */
+    shadow: '0px 8px 24px rgba(15, 26, 20, 0.08)',
+    /** Soft brand-coloured glow under primary actions. */
+    brandGlow: '0px 6px 18px rgba(4, 120, 87, 0.28)',
+    /** expo-blur tint. */
+    tint: 'light',
+  },
 };
 
 export type Palette = typeof light;
 
 const dark: Palette = {
-  brand: { primary: '#3dba6a', pressed: '#16833b', subtle: '#12301e' },
-  surface: { background: '#101713', default: '#19221c', variant: '#222d25' },
-  content: { primary: '#f2f6f2', secondary: '#a5b0a8', disabled: '#6b756e', onBrand: '#101713' },
-  border: { default: '#303c33', focus: '#f2f6f2' },
+  brand: { primary: '#34d399', pressed: '#10b981', subtle: 'rgba(52, 211, 153, 0.14)' },
+  surface: { background: '#070b09', default: '#111915', variant: '#1a2420' },
+  content: { primary: '#eef4f1', secondary: '#9aa8a2', disabled: '#56625d', onBrand: '#03140b' },
+  border: { default: 'rgba(255, 255, 255, 0.08)', focus: '#34d399' },
   feedback: {
-    success: '#3dba6a',
-    successSubtle: '#12301e',
-    warning: '#f5b44a',
-    warningSubtle: '#3a2a12',
-    error: '#f07167',
-    errorSubtle: '#3a1a18',
-    info: '#3cc4ba',
-    infoSubtle: '#10302d',
+    success: '#34d399',
+    successSubtle: 'rgba(52, 211, 153, 0.14)',
+    warning: '#fbbf24',
+    warningSubtle: 'rgba(251, 191, 36, 0.14)',
+    error: '#f87171',
+    errorSubtle: 'rgba(248, 113, 113, 0.14)',
+    info: '#2dd4bf',
+    infoSubtle: 'rgba(45, 212, 191, 0.14)',
   },
   finance: {
-    remaining: '#3dba6a',
-    spending: '#f2f6f2',
-    underBudget: '#3dba6a',
-    overBudget: '#f07167',
-    predicted: '#3cc4ba',
+    remaining: '#34d399',
+    spending: '#eef4f1',
+    underBudget: '#34d399',
+    overBudget: '#f87171',
+    predicted: '#2dd4bf',
   },
-  overlay: { scrim: 'rgba(0, 0, 0, 0.6)' },
+  overlay: { scrim: 'rgba(2, 6, 4, 0.72)' },
+  glass: {
+    fill: 'rgba(20, 29, 25, 0.58)',
+    fillStrong: 'rgba(14, 21, 18, 0.82)',
+    border: 'rgba(255, 255, 255, 0.09)',
+    highlight: 'rgba(255, 255, 255, 0.12)',
+    glowPrimary: 'rgba(52, 211, 153, 0.20)',
+    glowSecondary: 'rgba(45, 212, 191, 0.12)',
+    shadow: '0px 12px 32px rgba(0, 0, 0, 0.45)',
+    brandGlow: '0px 6px 22px rgba(52, 211, 153, 0.35)',
+    tint: 'dark',
+  },
 };
 
 export const palettes: Record<ColorScheme, Palette> = { light, dark };
@@ -113,9 +144,21 @@ export function themed<T extends StyleSheet.NamedStyles<T> | StyleSheet.NamedSty
   });
 }
 
-export const spacing = { 4: 4, 8: 8, 12: 12, 16: 16, 20: 20, 24: 24 } as const;
+export const spacing = { 4: 4, 8: 8, 12: 12, 16: 16, 20: 20, 24: 24, 32: 32, 40: 40, 48: 48, 64: 64 } as const;
 
-export const radius = { sm: 8, md: 12, lg: 16, full: 999 } as const;
+/** `card` is the glass container corner: softer than lg so the translucent edge reads as one piece. */
+export const radius = { xs: 4, sm: 8, md: 12, lg: 16, card: 20, xl: 24, full: 999 } as const;
+
+/** Micro-interaction timings (ms). Every animation is skipped when the device asks to reduce motion. */
+export const motion = {
+  /** Pressed controls shrink to this scale... */
+  pressScale: 0.97,
+  pressIn: 90,
+  /** ...and spring back over about this long. */
+  pressOut: 180,
+  /** Content fading in after a screen or month change. */
+  enter: 220,
+} as const;
 
 export const fontFamily = {
   uiRegular: 'Manrope_400Regular',
@@ -126,22 +169,32 @@ export const fontFamily = {
   dataSemiBold: 'IBMPlexMono_600SemiBold',
 } as const;
 
-// Text styles, named after the Figma text styles.
+// Text styles, named after the Figma text styles. Manrope for words, IBM Plex Mono for money
+// (fixed-width digits keep columns of amounts aligned); big figures are tracked tighter.
 export const type = {
-  displayLarge: { fontFamily: fontFamily.uiBold, fontSize: 40, lineHeight: 48, letterSpacing: -0.4 },
-  headingLarge: { fontFamily: fontFamily.uiBold, fontSize: 24, lineHeight: 32, letterSpacing: -0.12 },
-  headingMedium: { fontFamily: fontFamily.uiSemiBold, fontSize: 18, lineHeight: 26 },
+  displayLarge: { fontFamily: fontFamily.uiBold, fontSize: 40, lineHeight: 48, letterSpacing: -0.8 },
+  headingLarge: { fontFamily: fontFamily.uiBold, fontSize: 26, lineHeight: 32, letterSpacing: -0.5 },
+  headingMedium: { fontFamily: fontFamily.uiSemiBold, fontSize: 18, lineHeight: 26, letterSpacing: -0.2 },
   bodyLarge: { fontFamily: fontFamily.uiRegular, fontSize: 16, lineHeight: 24 },
   bodyMedium: { fontFamily: fontFamily.uiRegular, fontSize: 14, lineHeight: 20 },
   bodySmall: { fontFamily: fontFamily.uiMedium, fontSize: 12, lineHeight: 16 },
-  label: { fontFamily: fontFamily.uiSemiBold, fontSize: 12, lineHeight: 16, letterSpacing: 0.24 },
+  label: { fontFamily: fontFamily.uiSemiBold, fontSize: 12, lineHeight: 16, letterSpacing: 0.4 },
   button: { fontFamily: fontFamily.uiSemiBold, fontSize: 16, lineHeight: 20 },
-  numericLarge: { fontFamily: fontFamily.dataSemiBold, fontSize: 32, lineHeight: 40, letterSpacing: -0.64 },
-  numericMedium: { fontFamily: fontFamily.dataSemiBold, fontSize: 20, lineHeight: 28, letterSpacing: -0.2 },
+  numericLarge: { fontFamily: fontFamily.dataSemiBold, fontSize: 34, lineHeight: 42, letterSpacing: -1 },
+  numericMedium: { fontFamily: fontFamily.dataSemiBold, fontSize: 22, lineHeight: 28, letterSpacing: -0.5 },
   numericSmall: { fontFamily: fontFamily.dataMedium, fontSize: 14, lineHeight: 20 },
 } satisfies Record<string, TextStyle>;
 
 // Elevation/SM. boxShadow works on iOS, Android and web; the shadow* props are deprecated on web.
 export const elevationSm = {
   boxShadow: '0px 1px 3px rgba(15, 23, 18, 0.06)',
+} as const;
+
+// Elevation/MD (menus, raised cards) and Elevation/LG (sheets, dialogs).
+export const elevationMd = {
+  boxShadow: '0px 4px 12px rgba(15, 23, 18, 0.08)',
+} as const;
+
+export const elevationLg = {
+  boxShadow: '0px 12px 32px rgba(15, 23, 18, 0.12)',
 } as const;

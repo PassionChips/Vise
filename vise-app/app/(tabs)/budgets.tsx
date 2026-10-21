@@ -6,6 +6,8 @@ import { Text, View } from 'react-native';
 import { Alert } from '../../src/components/Alert';
 import { IconButton, PrimaryButton } from '../../src/components/Buttons';
 import { Card } from '../../src/components/Card';
+import { MonthPicker } from '../../src/components/Controls';
+import { FadeIn } from '../../src/components/Glass';
 import { CategoryBudgetCard } from '../../src/components/FinanceCards';
 import { Screen, ScreenHeader, SectionHeader } from '../../src/components/Layout';
 import { Toast } from '../../src/components/Overlays';
@@ -13,18 +15,27 @@ import { ProgressBar } from '../../src/components/ProgressBar';
 import { EmptyState, QueryState } from '../../src/components/QueryState';
 import { useFinance, type FinanceData } from '../../src/data/finance';
 import { setDeletedBudget, useDeletedBudget } from '../../src/data/undo';
-import { currentMonth, formatMoney, monthLabel, percentOf } from '../../src/format';
+import { currentMonth, formatMoney, percentOf } from '../../src/format';
 import { setCategoryBudget } from '../../src/services/viseCore';
 import { color, spacing, themed, type } from '../../src/theme/tokens';
 import { useTheme } from '../../src/theme/ThemeProvider';
 
 export default function BudgetsScreen() {
   useTheme();
-  const finance = useFinance(currentMonth());
-  return <QueryState query={finance}>{(data) => <Budgets data={data} />}</QueryState>;
+  const [month, setMonth] = useState(currentMonth);
+  const finance = useFinance(month);
+  return (
+    <QueryState query={finance}>
+      {(data) => (
+        <FadeIn trigger={data.month} style={styles.root}>
+          <Budgets data={data} onMonthChange={setMonth} />
+        </FadeIn>
+      )}
+    </QueryState>
+  );
 }
 
-function Budgets({ data }: { data: FinanceData }) {
+function Budgets({ data, onMonthChange }: { data: FinanceData; onMonthChange: (month: string) => void }) {
   const { month, settings, summary } = data;
   const currency = settings.currency;
   const deleted = useDeletedBudget();
@@ -66,7 +77,7 @@ function Budgets({ data }: { data: FinanceData }) {
     <View style={styles.root}>
       <Screen>
         <ScreenHeader title="Budgets" action={<IconButton icon={Plus} accessibilityLabel="Create budget" filled onPress={() => router.push('/budget-form')} />} />
-        <Text style={[type.bodySmall, styles.secondary]}>{monthLabel(month)}</Text>
+        <MonthPicker value={month} onChange={onMonthChange} latest={currentMonth()} />
 
         {failure && <Alert type="error" title="That didn’t work" description={failure} />}
 

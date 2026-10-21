@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { color, radius, spacing, themed } from '../theme/tokens';
+import { GlassSurface } from './Glass';
 
 interface Props {
   children: ReactNode;
@@ -10,19 +11,28 @@ interface Props {
   style?: StyleProp<ViewStyle>;
 }
 
-/** Card fill + 1px border + Radius/LG, 16px padding by default. */
+/** Glass card: blurred translucent fill, hairline border, Radius/Card, 20px padding by default. */
 export function Card({ children, dashed, style }: Props) {
-  return <View style={[styles.card, dashed && styles.dashed, style]}>{children}</View>;
+  return (
+    <GlassSurface style={[styles.card, style]}>
+      {/* A dashed border can't share the glass hairline, so it is drawn on top. */}
+      {dashed && <View pointerEvents="none" style={styles.dashed} />}
+      {children}
+    </GlassSurface>
+  );
 }
 
 const styles = themed(() => ({
-  card: {
-    backgroundColor: color.surface.default,
-    borderColor: color.border.default,
+  card: { padding: spacing[20] },
+  dashed: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: radius.card - 1,
     borderWidth: 1,
-    borderRadius: radius.lg,
-    padding: spacing[16],
-    overflow: 'hidden',
+    borderStyle: 'dashed',
+    borderColor: color.content.disabled,
   },
-  dashed: { borderStyle: 'dashed' },
 }));

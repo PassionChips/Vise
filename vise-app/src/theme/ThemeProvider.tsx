@@ -38,7 +38,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [pending, setPending] = useState<ThemePreference | null>(null);
 
   const saved = settings.data?.theme;
-  const preference: ThemePreference = pending ?? (isThemePreference(saved) ? saved : 'system');
+  const stored: ThemePreference = isThemePreference(saved) ? saved : 'system';
+  // New installs start dark: before onboarding is finished, the stored "system" is only the
+  // database default, not a choice. Onboarding then saves "dark" (saveOnboarding).
+  const preference: ThemePreference =
+    pending ?? (stored === 'system' && settings.data?.onboarding_completed === false ? 'dark' : stored);
   const deviceScheme = resolveScheme('system', device);
 
   // Drop the optimistic value once the stored one has caught up.

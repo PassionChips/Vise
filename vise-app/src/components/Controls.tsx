@@ -1,7 +1,13 @@
-import { Search, X } from 'lucide-react-native';
+import { Calendar, ChevronDown, Search, X } from 'lucide-react-native';
+import { useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
+import { monthLabel, shiftMonth } from '../format';
 import { color, elevationSm, radius, spacing, themed, type } from '../theme/tokens';
+import { SecondaryButton } from './Buttons';
+import { PressableScale } from './Glass';
+import { BottomSheet } from './Overlays';
+import { RadioGroup } from './RadioGroup';
 
 // ----- Control/SegmentedControl -----
 
@@ -46,15 +52,16 @@ interface FilterChipProps {
 /** Selected = inverted. 36px visual height inside a 44px hit area. */
 export function FilterChip({ label, selected, onPress }: FilterChipProps) {
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={onPress}
       hitSlop={4}
+      scaleTo={0.94}
       style={[styles.chip, selected ? styles.chipSelected : styles.chipIdle]}
     >
       <Text style={[type.label, { color: selected ? color.surface.background : color.content.primary }]}>{label}</Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -105,7 +112,54 @@ export function SearchInput({ value, onChangeText, placeholder }: SearchInputPro
   );
 }
 
+// ----- Control/MonthPicker -----
+
+interface MonthPickerProps {
+  /** YYYY-MM. */
+  value: string;
+  onChange: (month: string) => void;
+  /** The newest month offered (this month); the 11 before it are offered too. */
+  latest: string;
+}
+
+/** Button/Secondary (small) with calendar and chevron; opens a sheet of the last 12 months. */
+export function MonthPicker({ value, onChange, latest }: MonthPickerProps) {
+  const [open, setOpen] = useState(false);
+  const options = Array.from({ length: 12 }, (_, i) => {
+    const month = shiftMonth(latest, -i);
+    return { value: month, label: monthLabel(month) };
+  });
+  return (
+    <>
+      <SecondaryButton
+        label={monthLabel(value)}
+        leadingIcon={Calendar}
+        trailingIcon={ChevronDown}
+        size="small"
+        accessibilityLabel={`${monthLabel(value)}. Change month`}
+        onPress={() => setOpen(true)}
+        style={styles.monthPicker}
+      />
+      <BottomSheet visible={open} title="Choose a month" onClose={() => setOpen(false)}>
+        <ScrollView style={styles.monthList}>
+          <RadioGroup
+            options={options}
+            value={value}
+            accessibilityLabel="Month"
+            onChange={(month) => {
+              setOpen(false);
+              onChange(month);
+            }}
+          />
+        </ScrollView>
+      </BottomSheet>
+    </>
+  );
+}
+
 const styles = themed(() => ({
+  monthPicker: { alignSelf: 'flex-start' },
+  monthList: { maxHeight: 400 },
   track: {
     flexDirection: 'row',
     gap: 4,
