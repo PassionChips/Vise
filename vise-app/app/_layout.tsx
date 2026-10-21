@@ -9,14 +9,20 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
 import { useReduceMotion } from '../src/components/Glass';
+import { keepNativeSplash, LaunchScreen } from '../src/components/LaunchScreen';
 import { ThemeProvider, useTheme } from '../src/theme/ThemeProvider';
 import { color } from '../src/theme/tokens';
 
+// The native splash stays up until the animated launch screen takes over.
+keepNativeSplash();
+
 export default function RootLayout() {
+  const [launching, setLaunching] = useState(true);
+  const finishLaunch = useCallback(() => setLaunching(false), []);
   const [fontsLoaded, fontError] = useFonts({
     Manrope_400Regular,
     Manrope_500Medium,
@@ -34,6 +40,8 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <ThemedStack />
+      {/* Drawn over the app, which loads underneath while the logo animates. */}
+      {launching && <LaunchScreen onDone={finishLaunch} />}
     </ThemeProvider>
   );
 }

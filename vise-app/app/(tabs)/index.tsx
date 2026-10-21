@@ -21,6 +21,7 @@ import { FadeIn } from '../../src/components/Glass';
 import {
   CategoryBudgetCard,
   FinancialSummaryCard,
+  HeroBalanceCard,
   QuickAction,
   TransactionList,
   TransactionRow,
@@ -61,13 +62,7 @@ export default function DashboardScreen() {
   const finance = useFinance(month);
 
   return (
-    <QueryState query={finance}>
-      {(data) => (
-        <FadeIn trigger={data.month} style={styles.flex}>
-          <Dashboard data={data} onMonthChange={setMonth} />
-        </FadeIn>
-      )}
-    </QueryState>
+    <QueryState query={finance}>{(data) => <Dashboard data={data} onMonthChange={setMonth} />}</QueryState>
   );
 }
 
@@ -113,7 +108,17 @@ function Dashboard({ data, onMonthChange }: { data: FinanceData; onMonthChange: 
         )}
       </View>
 
-      <View style={styles.grid}>
+      {/* Sections rise in one after another, and again when the month changes. */}
+      <FadeIn trigger={month} index={0}>
+        <HeroBalanceCard
+          leftCents={summary.left_cents}
+          spentCents={summary.spent_cents}
+          incomeBasisCents={summary.income_basis_cents}
+          currency={currency}
+        />
+      </FadeIn>
+
+      <FadeIn trigger={month} index={1} style={styles.grid}>
         <View style={styles.gridRow}>
           <FinancialSummaryCard
             type="income"
@@ -129,26 +134,22 @@ function Dashboard({ data, onMonthChange }: { data: FinanceData; onMonthChange: 
           />
         </View>
         <View style={styles.gridRow}>
-          <FinancialSummaryCard
-            type="remaining"
-            currency={currency}
-            amountCents={summary.left_cents}
-            supportingText="Income − spending"
-          />
           <PredictedCard month={month} currency={currency} />
         </View>
-      </View>
+      </FadeIn>
 
-      <View style={styles.quickActions}>
+      <FadeIn trigger={month} index={2} style={styles.quickActions}>
         <QuickAction label="Add income" icon={ArrowDownLeft} iconColor={color.brand.primary} onPress={() => go({ pathname: '/add-transaction', params: { type: 'income' } })} />
         <QuickAction label="Add expense" icon={Plus} onPress={() => go('/add-transaction')} />
         <QuickAction label="New budget" icon={Wallet} onPress={() => router.push('/budget-form')} />
         <QuickAction label="Reports" icon={ChartNoAxesCombined} onPress={() => router.navigate('/reports')} />
-      </View>
+      </FadeIn>
 
-      <SpendingCard month={month} currency={currency} />
+      <FadeIn trigger={month} index={3}>
+        <SpendingCard month={month} currency={currency} />
+      </FadeIn>
 
-      <View style={styles.section}>
+      <FadeIn trigger={month} index={4} style={styles.section}>
         <SectionHeader
           title="Category budgets"
           trailing={<TertiaryButton label="View all" trailingIcon={ChevronRight} onPress={() => router.navigate('/budgets')} />}
@@ -175,9 +176,9 @@ function Dashboard({ data, onMonthChange }: { data: FinanceData; onMonthChange: 
             />
           ))
         )}
-      </View>
+      </FadeIn>
 
-      <View style={styles.section}>
+      <FadeIn trigger={month} index={5} style={styles.section}>
         <SectionHeader
           title="Recent transactions"
           trailing={<TertiaryButton label="View all" trailingIcon={ChevronRight} onPress={() => router.navigate('/transactions')} />}
@@ -208,7 +209,7 @@ function Dashboard({ data, onMonthChange }: { data: FinanceData; onMonthChange: 
             })}
           </TransactionList>
         )}
-      </View>
+      </FadeIn>
 
       <BottomSheet visible={addOpen} title="Add" onClose={() => setAddOpen(false)}>
         <SheetAction icon={ArrowUpRight} title="Expense" subtitle="Something you paid for" onPress={() => go('/add-transaction')} />
@@ -301,7 +302,6 @@ const styles = themed(() => ({
   secondary: { color: color.content.secondary },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing[12] },
   greeting: { flex: 1 },
-  flex: { flex: 1 },
   monthSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   grid: { gap: spacing[12] },
   gridRow: { flexDirection: 'row', gap: spacing[12] },

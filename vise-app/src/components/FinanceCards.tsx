@@ -6,14 +6,14 @@ import {
   TrendingUp,
   Wallet,
 } from 'lucide-react-native';
-import type { ReactNode } from 'react';
-import { Text, View } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Animated, Easing, Text, View } from 'react-native';
 
 import { formatMoney, percentOf } from '../format';
-import { color, radius, spacing, themed, type } from '../theme/tokens';
+import { color, motion, radius, spacing, themed, type } from '../theme/tokens';
 import { BudgetStatus, budgetHealth, healthColor } from './BudgetStatus';
 import { Card } from './Card';
-import { GlassSurface, PressableScale } from './Glass';
+import { GlassSurface, PressableScale, useReduceMotion } from './Glass';
 import { CategoryIcon } from './CategoryIcon';
 import { ProgressBar } from './ProgressBar';
 
@@ -72,6 +72,70 @@ export function FinancialSummaryCard({ type: kind, amountCents, supportingText, 
         </View>
       </View>
     </Card>
+  );
+}
+
+// ----- Card/HeroBalance -----
+
+/** Counts from the previously shown amount to `cents`; jumps straight there with reduce motion. */
+function useCountUp(cents: number): number {
+  const reduceMotion = useReduceMotion();
+  const value = useRef(new Animated.Value(0)).current;
+  const [shown, setShown] = useState(reduceMotion ? cents : 0);
+  useEffect(() => {
+    const id = value.addListener(({ value: v }) => setShown(Math.round(v)));
+    return () => value.removeListener(id);
+  }, [value]);
+  useEffect(() => {
+    if (reduceMotion) {
+      value.setValue(cents);
+      setShown(cents);
+      return;
+    }
+    Animated.timing(value, { toValue: cents, duration: motion.fill, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+  }, [cents, reduceMotion, value]);
+  return shown;
+}
+
+interface HeroBalanceCardProps {
+  /** Income minus spending (negative when overspent). */
+  leftCents: number;
+  spentCents: number;
+  /** What spending is measured against: real income, or the expected income until it arrives. */
+  incomeBasisCents: number;
+  currency?: string;
+}
+
+/** The dashboard's headline figure: what's left to spend this month. */
+export function HeroBalanceCard({ leftCents, spentCents, incomeBasisCents, currency }: HeroBalanceCardProps) {
+  const shown = useCountUp(leftCents);
+  const usedPercent = percentOf(spentCents, incomeBasisCents);
+  const amount = formatMoney(leftCents, { currency });
+  return (
+    <View
+      accessible
+      accessibilityLabel={`Left to spend, ${amount}. ${usedPercent} percent of income spent.`}
+      style={styles.hero}
+    >
+      <View pointerEvents="none" style={styles.heroShine} />
+      <View pointerEvents="none" style={styles.heroHighlight} />
+      <View style={styles.row8}>
+        <View style={styles.heroTile}>
+          <Wallet size={18} strokeWidth={2} color={color.hero.text} />
+        </View>
+        <Text style={[type.label, { color: color.hero.subtext }]}>LEFT TO SPEND</Text>
+      </View>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={[type.numericLarge, styles.heroAmount]}>
+        {formatMoney(shown, { currency })}
+      </Text>
+      <ProgressBar value={incomeBasisCents > 0 ? spentCents / incomeBasisCents : 0} fillColor={color.hero.fill} trackColor={color.hero.track} height={6} />
+      <View style={styles.spaceBetween}>
+        <Text style={[type.bodySmall, { color: color.hero.subtext }]}>
+          {leftCents < 0 ? 'More spent than earned' : 'Income − spending'}
+        </Text>
+        <Text style={[type.numericSmall, { color: color.hero.text }]}>{usedPercent}% spent</Text>
+      </View>
+    </View>
   );
 }
 
@@ -139,7 +203,7 @@ export function CategoryBudgetCard({ name, icon, spentCents, limitCents, warning
             </Text>
           </View>
         </View>
-        <ProgressBar value={limitCents > 0 ? spentCents / limitCents : 0} fillColor={healthColor(health)} />
+        <ProgressBar value={limitCents > 0 ? spentCents / limitCents : 0} fillColor={healthColor(health)} gradient={health === 'healthy'} />
         <View style={styles.spaceBetween}>
           <Text style={[type.numericSmall, { color: healthColor(health) }]}>{footer}</Text>
           <Text style={[type.numericSmall, styles.secondary]}>{percentUsed}% used</Text>
@@ -224,7 +288,7 @@ export function GoalCard({ name, icon, subtitle, savedCents, targetCents }: Goal
       <Text style={[type.numericSmall, styles.primary]}>
         {formatMoney(savedCents)} of {formatMoney(targetCents)}
       </Text>
-      <ProgressBar value={savedCents / targetCents} accessibilityLabel={`${percent} percent of ${name} saved`} />
+      <ProgressBar value={savedCents / targetCents} gradient accessibilityLabel={`${percent} percent of ${name} saved`} />
       <View style={styles.spaceBetween}>
         <Text style={[type.numericSmall, { color: color.finance.remaining }]}>
           {complete ? 'Goal reached' : `${formatMoney(targetCents - savedCents)} to go`}
@@ -248,6 +312,43 @@ const styles = themed(() => ({
   row12: { flexDirection: 'row', alignItems: 'center', gap: spacing[12] },
   spaceBetween: { flexDirection: 'row', justifyContent: 'space-between' },
   summaryCard: { flex: 1 },
+  hero: {
+    gap: spacing[12],
+    padding: spacing[24],
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: color.glass.border,
+    backgroundColor: color.brand.pressed,
+    experimental_backgroundImage: color.gradient.hero,
+    boxShadow: color.glass.brandGlow,
+    overflow: 'hidden',
+  },
+  // A soft bloom in the top-right corner gives the gradient depth.
+  heroShine: {
+    position: 'absolute',
+    top: -120,
+    right: -100,
+    width: 280,
+    height: 280,
+    experimental_backgroundImage: color.gradient.ambientSecondary,
+  },
+  heroHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 16,
+    right: 16,
+    height: 1,
+    backgroundColor: color.glass.highlight,
+  },
+  heroTile: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: color.hero.track,
+  },
+  heroAmount: { color: color.hero.text, fontSize: 40, lineHeight: 48 },
   summaryInner: { gap: spacing[8] },
   tile32: {
     width: 32,

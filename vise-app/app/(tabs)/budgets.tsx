@@ -129,17 +129,18 @@ function Budgets({ data, onMonthChange }: { data: FinanceData; onMonthChange: (m
               />
             </View>
 
-            {budgets.map((c) => (
-              <CategoryBudgetCard
-                key={c.category_id}
-                name={c.name}
-                icon={c.icon}
-                currency={currency}
-                spentCents={c.spent_cents}
-                limitCents={c.limit_cents ?? 0}
-                warningThreshold={settings.warning_threshold_percent}
-                onPress={() => router.push({ pathname: '/budget-form', params: { id: String(c.category_id) } })}
-              />
+            {budgets.map((c, i) => (
+              <FadeIn key={c.category_id} index={i + 1}>
+                <CategoryBudgetCard
+                  name={c.name}
+                  icon={c.icon}
+                  currency={currency}
+                  spentCents={c.spent_cents}
+                  limitCents={c.limit_cents ?? 0}
+                  warningThreshold={settings.warning_threshold_percent}
+                  onPress={() => router.push({ pathname: '/budget-form', params: { id: String(c.category_id) } })}
+                />
+              </FadeIn>
             ))}
           </>
         )}

@@ -5,7 +5,7 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { monthLabel, shiftMonth } from '../format';
 import { color, elevationSm, radius, spacing, themed, type } from '../theme/tokens';
 import { SecondaryButton } from './Buttons';
-import { PressableScale } from './Glass';
+import { PressableScale, selectionHaptic } from './Glass';
 import { BottomSheet } from './Overlays';
 import { RadioGroup } from './RadioGroup';
 
@@ -30,7 +30,10 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
             key={option}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
-            onPress={() => onChange(option)}
+            onPress={() => {
+              if (!selected) selectionHaptic();
+              onChange(option);
+            }}
             style={[styles.segment, stretch && styles.segmentStretch, selected && styles.segmentSelected]}
           >
             <Text style={[type.label, { color: selected ? color.content.primary : color.content.secondary }]}>{option}</Text>
@@ -55,7 +58,10 @@ export function FilterChip({ label, selected, onPress }: FilterChipProps) {
     <PressableScale
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      onPress={onPress}
+      onPress={() => {
+        selectionHaptic();
+        onPress();
+      }}
       hitSlop={4}
       scaleTo={0.94}
       style={[styles.chip, selected ? styles.chipSelected : styles.chipIdle]}

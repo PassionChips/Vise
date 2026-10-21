@@ -12,7 +12,7 @@ import { Animated, Text, View } from 'react-native';
 
 import { color, radius, spacing, themed, type } from '../theme/tokens';
 import { useTheme } from '../theme/ThemeProvider';
-import { GlassSurface, PressableScale, useBlurHost, useReduceMotion } from './Glass';
+import { GlassSurface, PressableScale, selectionHaptic, useBlurHost, useReduceMotion } from './Glass';
 
 /** Route name → tab icon and label, in the fixed design order. */
 export const TABS: Record<string, { label: string; icon: LucideIcon }> = {
@@ -49,6 +49,7 @@ export function BottomNavigation({ state, navigation, insets }: BottomTabBarProp
           const onPress = () => {
             const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
             if (!active && !event.defaultPrevented) {
+              selectionHaptic();
               navigation.navigate(route.name, route.params);
             }
           };

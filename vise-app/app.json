@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "vise-app",
+    "name": "VISE",
     "slug": "vise-app",
     "scheme": "vise",
     "version": "1.0.0",
@@ -12,7 +12,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#070b09",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -34,7 +34,21 @@
           "cameraPermission": "VISE uses the camera to read your receipts. The photo is read on your phone and never uploaded.",
           "photosPermission": "VISE reads receipts you choose. The photo is read on your phone and never uploaded."
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#070b09",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#070b09"
+          }
+        }
       ]
-    ]
+    ],
+    "backgroundColor": "#070b09"
   }
 }

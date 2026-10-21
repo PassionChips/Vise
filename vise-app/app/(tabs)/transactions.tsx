@@ -6,6 +6,7 @@ import { Text, View } from 'react-native';
 import { Alert } from '../../src/components/Alert';
 import { IconButton, PrimaryButton, TertiaryButton } from '../../src/components/Buttons';
 import { FilterChip, FilterChipRow, SearchInput } from '../../src/components/Controls';
+import { FadeIn } from '../../src/components/Glass';
 import { TransactionList, TransactionRow } from '../../src/components/FinanceCards';
 import { Screen, ScreenHeader } from '../../src/components/Layout';
 import { BottomSheet, ConfirmDialog, Toast } from '../../src/components/Overlays';
@@ -213,8 +214,8 @@ function Transactions({ data, month, onMonthChange }: { data: FinanceData; month
           />
         )}
 
-        {days.map((day) => (
-          <View key={day.date} style={styles.day}>
+        {days.map((day, i) => (
+          <FadeIn key={day.date} index={i} style={styles.day}>
             <View style={styles.dayHeader}>
               <Text style={[type.label, styles.secondary]}>{formatDayHeader(day.date, today)}</Text>
               <Text style={[type.numericSmall, styles.secondary]}>{formatMoney(day.total, { sign: 'always', currency })}</Text>
@@ -236,7 +237,7 @@ function Transactions({ data, month, onMonthChange }: { data: FinanceData; month
                 );
               })}
             </TransactionList>
-          </View>
+          </FadeIn>
         ))}
         {!byDay && matching.length > 0 && (
           <View style={styles.day}>

@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react-native';
 import { ActivityIndicator, Text, type StyleProp, type ViewStyle } from 'react-native';
 
 import { color, radius, spacing, themed, type } from '../theme/tokens';
-import { PressableScale } from './Glass';
+import { PressableScale, tapHaptic } from './Glass';
 
 interface IconButtonProps {
   icon: LucideIcon;
@@ -18,7 +18,10 @@ export function IconButton({ icon: Icon, accessibilityLabel, filled, onPress }: 
     <PressableScale
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      onPress={onPress}
+      onPress={filled && onPress ? () => {
+        tapHaptic();
+        onPress();
+      } : onPress}
       scaleTo={0.92}
       style={[styles.iconButton, filled && styles.iconButtonFilled]}
       pressedStyle={filled ? styles.filledPressed : styles.standardPressed}
@@ -49,7 +52,7 @@ interface PrimaryButtonProps {
   style?: StyleProp<ViewStyle>;
 }
 
-/** Button/Primary: Brand/Primary fill with a soft brand glow, full width by default. */
+/** Button/Primary: brand gradient pill with a soft glow, full width by default. */
 export function PrimaryButton({ label, size = 'large', onPress, disabled, loading, style }: PrimaryButtonProps) {
   return (
     <PressableScale
@@ -57,7 +60,10 @@ export function PrimaryButton({ label, size = 'large', onPress, disabled, loadin
       accessibilityLabel={loading ? 'Saving' : label}
       accessibilityState={{ disabled: !!disabled, busy: !!loading }}
       disabled={disabled || loading}
-      onPress={onPress}
+      onPress={onPress && (() => {
+        tapHaptic();
+        onPress();
+      })}
       // Small is 40px tall; keep a 44px touch target.
       hitSlop={size === 'small' ? { top: 2, bottom: 2 } : undefined}
       style={[
@@ -117,7 +123,11 @@ const styles = themed(() => ({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconButtonFilled: { backgroundColor: color.brand.primary, boxShadow: color.glass.brandGlow },
+  iconButtonFilled: {
+    backgroundColor: color.brand.primary,
+    experimental_backgroundImage: color.gradient.brand,
+    boxShadow: color.glass.brandGlow,
+  },
   standardPressed: { backgroundColor: color.surface.variant },
   filledPressed: { opacity: 0.85 },
   button: {
@@ -128,8 +138,14 @@ const styles = themed(() => ({
   },
   large: { height: 48, paddingHorizontal: spacing[20], borderRadius: radius.md },
   small: { height: 40, paddingHorizontal: spacing[16], borderRadius: radius.sm },
-  primary: { alignSelf: 'stretch', backgroundColor: color.brand.primary, borderRadius: radius.full, boxShadow: color.glass.brandGlow },
-  primaryDisabled: { backgroundColor: color.content.disabled, boxShadow: 'none' },
+  primary: {
+    alignSelf: 'stretch',
+    backgroundColor: color.brand.primary,
+    experimental_backgroundImage: color.gradient.brand,
+    borderRadius: radius.full,
+    boxShadow: color.glass.brandGlow,
+  },
+  primaryDisabled: { backgroundColor: color.content.disabled, experimental_backgroundImage: [], boxShadow: [] },
   secondary: { backgroundColor: color.surface.variant },
   secondaryPressed: { backgroundColor: color.border.default },
   tertiaryPressed: { backgroundColor: color.brand.subtle },

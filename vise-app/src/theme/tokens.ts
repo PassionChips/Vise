@@ -39,9 +39,6 @@ const light = {
     border: 'rgba(15, 26, 20, 0.08)',
     /** 1px light edge along the top of a glass container. */
     highlight: 'rgba(255, 255, 255, 0.95)',
-    /** Soft ambient glows behind the content, which the glass blurs. */
-    glowPrimary: 'rgba(16, 185, 129, 0.18)',
-    glowSecondary: 'rgba(45, 212, 191, 0.14)',
     /** Lift under glass containers. */
     shadow: '0px 8px 24px rgba(15, 26, 20, 0.08)',
     /** Soft brand-coloured glow under primary actions. */
@@ -49,6 +46,22 @@ const light = {
     /** expo-blur tint. */
     tint: 'light',
   },
+  /** CSS gradients (React Native `experimental_backgroundImage`). */
+  gradient: {
+    /** Primary buttons. White text stays above 4.5:1 across the whole ramp. */
+    brand: 'linear-gradient(135deg, #047857 0%, #0f766e 100%)',
+    /** The dashboard's hero balance card. */
+    hero: 'linear-gradient(140deg, #047857 0%, #0d7a6b 55%, #115e59 100%)',
+    /** Progress fills. */
+    progress: 'linear-gradient(90deg, #047857 0%, #0f766e 100%)',
+    /** Ambient light behind each screen. */
+    ambientPrimary: 'radial-gradient(circle at center, rgba(16, 185, 129, 0.22) 0%, rgba(16, 185, 129, 0) 70%)',
+    ambientSecondary: 'radial-gradient(circle at center, rgba(45, 212, 191, 0.18) 0%, rgba(45, 212, 191, 0) 70%)',
+    /** Loading placeholders: a soft band that sweeps across. */
+    shimmer: 'linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.7) 50%, rgba(255, 255, 255, 0) 100%)',
+  },
+  /** Text and track on the hero card. */
+  hero: { text: '#ffffff', subtext: 'rgba(255, 255, 255, 0.78)', track: 'rgba(255, 255, 255, 0.22)', fill: '#ffffff' },
 };
 
 export type Palette = typeof light;
@@ -81,15 +94,33 @@ const dark: Palette = {
     fillStrong: 'rgba(14, 21, 18, 0.82)',
     border: 'rgba(255, 255, 255, 0.09)',
     highlight: 'rgba(255, 255, 255, 0.12)',
-    glowPrimary: 'rgba(52, 211, 153, 0.20)',
-    glowSecondary: 'rgba(45, 212, 191, 0.12)',
     shadow: '0px 12px 32px rgba(0, 0, 0, 0.45)',
     brandGlow: '0px 6px 22px rgba(52, 211, 153, 0.35)',
     tint: 'dark',
   },
+  gradient: {
+    brand: 'linear-gradient(135deg, #34d399 0%, #2dd4bf 100%)',
+    hero: 'linear-gradient(140deg, rgba(16, 185, 129, 0.55) 0%, rgba(13, 148, 136, 0.32) 50%, rgba(17, 25, 21, 0.35) 100%)',
+    progress: 'linear-gradient(90deg, #10b981 0%, #2dd4bf 100%)',
+    ambientPrimary: 'radial-gradient(circle at center, rgba(52, 211, 153, 0.26) 0%, rgba(52, 211, 153, 0) 70%)',
+    ambientSecondary: 'radial-gradient(circle at center, rgba(45, 212, 191, 0.16) 0%, rgba(45, 212, 191, 0) 70%)',
+    shimmer: 'linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.07) 50%, rgba(255, 255, 255, 0) 100%)',
+  },
+  hero: { text: '#eef4f1', subtext: 'rgba(238, 244, 241, 0.72)', track: 'rgba(255, 255, 255, 0.12)', fill: '#34d399' },
 };
 
 export const palettes: Record<ColorScheme, Palette> = { light, dark };
+
+/**
+ * The launch screen is always dark (it matches the native splash in app.json, which
+ * shows before the theme is known), so its colours don't switch with the theme.
+ */
+export const launch = {
+  background: '#070b09',
+  wordmark: '#eef4f1',
+  tagline: '#9aa8a2',
+  glow: 'radial-gradient(circle at center, rgba(52, 211, 153, 0.38) 0%, rgba(45, 212, 191, 0.12) 45%, rgba(7, 11, 9, 0) 70%)',
+} as const;
 
 function copy(palette: Palette): Palette {
   return JSON.parse(JSON.stringify(palette)) as Palette;
@@ -157,7 +188,11 @@ export const motion = {
   /** ...and spring back over about this long. */
   pressOut: 180,
   /** Content fading in after a screen or month change. */
-  enter: 220,
+  enter: 320,
+  /** Delay between items in a staggered entrance. */
+  stagger: 55,
+  /** Progress bars and the hero balance counting up. */
+  fill: 700,
 } as const;
 
 export const fontFamily = {

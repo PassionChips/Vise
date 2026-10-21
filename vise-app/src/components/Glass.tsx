@@ -6,6 +6,7 @@
 // screen (registered through BlurHost) and cards fall back to their translucent fill.
 
 import { BlurTargetView, BlurView, type BlurTint } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from 'expo-router';
 import {
   createContext,
@@ -21,6 +22,7 @@ import {
 import {
   AccessibilityInfo,
   Animated,
+  Easing,
   Platform,
   Pressable,
   StyleSheet,
@@ -132,31 +134,12 @@ export function GlassSurface({ children, style, strong, blurTarget, intensity = 
 
 // ----- Ambient glow -----
 
-/** Rings from the outside in; stacked, they fade like a radial gradient without extra native code. */
-const GLOW_RINGS = [1, 0.8, 0.62, 0.46, 0.32];
-
-function Glow({ size, tint, style }: { size: number; tint: string; style: ViewStyle }) {
-  return (
-    <View pointerEvents="none" style={[styles.glow, { width: size, height: size }, style]}>
-      {GLOW_RINGS.map((scale) => (
-        <View
-          key={scale}
-          style={[
-            styles.glowRing,
-            { width: size * scale, height: size * scale, backgroundColor: tint, opacity: 0.22 },
-          ]}
-        />
-      ))}
-    </View>
-  );
-}
-
 /** Soft emerald and teal light behind a screen's content; the glass cards blur it as they scroll. */
 export function AmbientGlow() {
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <Glow size={420} tint={color.glass.glowPrimary} style={{ top: -160, right: -140 }} />
-      <Glow size={360} tint={color.glass.glowSecondary} style={{ top: 360, left: -180 }} />
+      <View style={[styles.glow, styles.glowPrimary]} />
+      <View style={[styles.glow, styles.glowSecondary]} />
     </View>
   );
 }
@@ -200,17 +183,44 @@ export function PressableScale({ style, pressedStyle, scaleTo = motion.pressScal
   );
 }
 
-/** Fades and lifts its children in when `trigger` changes (e.g. a new month); instant with reduce motion. */
-export function FadeIn({ trigger, children, style }: { trigger: unknown; children: ReactNode; style?: StyleProp<ViewStyle> }) {
+interface FadeInProps {
+  /** Replays the entrance when it changes (e.g. a new month). */
+  trigger?: unknown;
+  /** Position in a staggered group: each step starts a little later. */
+  index?: number;
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+}
+
+/** Fades and lifts its children in; staggered by `index`. Instant with reduce motion. */
+export function FadeIn({ trigger, index = 0, children, style }: FadeInProps) {
   const progress = useRef(new Animated.Value(1)).current;
   const reduceMotion = useReduceMotion();
   useEffect(() => {
     if (reduceMotion) return;
     progress.setValue(0);
-    Animated.timing(progress, { toValue: 1, duration: motion.enter, useNativeDriver: true }).start();
-  }, [trigger, reduceMotion, progress]);
-  const translateY = progress.interpolate({ inputRange: [0, 1], outputRange: [8, 0] });
+    Animated.timing(progress, {
+      toValue: 1,
+      duration: motion.enter,
+      delay: Math.min(index, 8) * motion.stagger,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [trigger, index, reduceMotion, progress]);
+  const translateY = progress.interpolate({ inputRange: [0, 1], outputRange: [12, 0] });
   return <Animated.View style={[style, { opacity: progress, transform: [{ translateY }] }]}>{children}</Animated.View>;
+}
+
+// ----- Haptics -----
+
+/** A light tap for confirming actions; ignored where haptics aren't available. */
+export function tapHaptic() {
+  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+}
+
+/** A tick for changing a selection (tabs, chips, segments). */
+export function selectionHaptic() {
+  Haptics.selectionAsync().catch(() => {});
 }
 
 const styles = themed(() => ({
@@ -229,6 +239,7 @@ const styles = themed(() => ({
     height: 1,
     backgroundColor: color.glass.highlight,
   },
-  glow: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  glowRing: { position: 'absolute', borderRadius: radius.full },
+  glow: { position: 'absolute' },
+  glowPrimary: { width: 520, height: 520, top: -220, right: -200, experimental_backgroundImage: color.gradient.ambientPrimary },
+  glowSecondary: { width: 460, height: 460, top: 300, left: -240, experimental_backgroundImage: color.gradient.ambientSecondary },
 }));

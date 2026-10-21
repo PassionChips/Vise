@@ -1,17 +1,49 @@
 // Loading and error states for screens that read from rust-core.
 
 import { CircleAlert } from 'lucide-react-native';
-import type { ReactNode } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { Animated, Easing, Text, View } from 'react-native';
 
 import type { Query } from '../data/store';
-import { color, spacing, themed, type } from '../theme/tokens';
+import { color, radius, spacing, themed, type } from '../theme/tokens';
 import { SecondaryButton } from './Buttons';
+import { useReduceMotion } from './Glass';
 
-export function LoadingView() {
+/** One placeholder block with a soft light band sweeping across it. */
+function Skeleton({ height, sweep }: { height: number; sweep: Animated.Value }) {
+  const translateX = sweep.interpolate({ inputRange: [0, 1], outputRange: [-320, 420] });
   return (
-    <View accessibilityLabel="Loading" accessibilityRole="progressbar" style={styles.center}>
-      <ActivityIndicator color={color.brand.primary} />
+    <View style={[styles.skeleton, { height }]}>
+      <Animated.View style={[styles.shimmer, { transform: [{ translateX }] }]} />
+    </View>
+  );
+}
+
+/** Skeleton cards shaped like a screen's content while rust-core answers. */
+export function LoadingView() {
+  const reduceMotion = useReduceMotion();
+  const sweep = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (reduceMotion) return;
+    const loop = Animated.loop(
+      Animated.timing(sweep, { toValue: 1, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [reduceMotion, sweep]);
+
+  return (
+    <View accessibilityLabel="Loading" accessibilityRole="progressbar" style={styles.skeletons}>
+      <Skeleton height={176} sweep={sweep} />
+      <View style={styles.skeletonRow}>
+        <View style={styles.flex}>
+          <Skeleton height={120} sweep={sweep} />
+        </View>
+        <View style={styles.flex}>
+          <Skeleton height={120} sweep={sweep} />
+        </View>
+      </View>
+      <Skeleton height={220} sweep={sweep} />
     </View>
   );
 }
@@ -46,6 +78,17 @@ export function EmptyState({ title, description, action }: { title: string; desc
 }
 
 const styles = themed(() => ({
+  flex: { flex: 1 },
+  skeletons: { flex: 1, gap: spacing[12], paddingTop: spacing[64], paddingHorizontal: spacing[24] },
+  skeletonRow: { flexDirection: 'row', gap: spacing[12] },
+  skeleton: {
+    borderRadius: radius.card,
+    backgroundColor: color.glass.fill,
+    borderWidth: 1,
+    borderColor: color.glass.border,
+    overflow: 'hidden',
+  },
+  shimmer: { width: 200, height: '100%', experimental_backgroundImage: color.gradient.shimmer },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing[12], padding: spacing[24] },
   empty: { alignItems: 'center', gap: spacing[8], paddingVertical: spacing[24], paddingHorizontal: spacing[16] },
   title: { color: color.content.primary, textAlign: 'center' },
