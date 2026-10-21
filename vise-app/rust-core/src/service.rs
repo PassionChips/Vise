@@ -678,6 +678,62 @@ mod tests {
     }
 
     #[test]
+    fn a_transaction_keeps_the_date_it_happened_not_the_day_it_was_entered() {
+        let mut connection = establish_connection_test().unwrap();
+        // Entered "today", but it happened years ago, and another one far in the future.
+        add_transaction(&mut connection, &expense("50", "2023-03-12", None)).unwrap();
+        add_transaction(&mut connection, &expense("7", "2031-01-05", None)).unwrap();
+
+        let march_2023 = list_transactions(&mut connection, "2023-03").unwrap();
+        assert_eq!(march_2023.len(), 1);
+        assert_eq!(march_2023[0].amount_cents, 5_000);
+        assert!(
+            list_transactions(&mut connection, "2026-10")
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(
+            list_transactions(&mut connection, "2031-01").unwrap().len(),
+            1
+        );
+
+        // Every total follows the real date too.
+        let in_march = get_monthly_summary(&mut connection, "2023-03", "EUR").unwrap();
+        assert_eq!(in_march.spent_cents, 5_000);
+        let other_month = get_monthly_summary(&mut connection, "2023-04", "EUR").unwrap();
+        assert_eq!(other_month.spent_cents, 0);
+        let trend = get_spending_trend(&mut connection, "2023-04", "EUR", 3).unwrap();
+        let march = trend.iter().find(|m| m.month == "2023-03").unwrap();
+        assert_eq!(march.spent_cents, 5_000);
+    }
+
+    #[test]
+    fn the_first_and_last_day_of_a_month_belong_to_that_month() {
+        let mut connection = establish_connection_test().unwrap();
+        for date in ["2026-09-30", "2026-10-01", "2026-10-31", "2026-11-01"] {
+            add_transaction(&mut connection, &expense("1", date, None)).unwrap();
+        }
+        let october: Vec<String> = list_transactions(&mut connection, "2026-10")
+            .unwrap()
+            .iter()
+            .map(|t| t.occurred_at.to_string())
+            .collect();
+        assert_eq!(october.len(), 2);
+        assert_eq!(
+            get_monthly_summary(&mut connection, "2026-10", "EUR")
+                .unwrap()
+                .spent_cents,
+            200
+        );
+        assert_eq!(
+            get_monthly_summary(&mut connection, "2026-09", "EUR")
+                .unwrap()
+                .spent_cents,
+            100
+        );
+    }
+
+    #[test]
     fn validation_reports_the_offending_field() {
         let mut bad_amount = expense("abc", "2026-09-01", None);
         assert_eq!(

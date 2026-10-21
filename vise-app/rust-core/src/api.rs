@@ -16,6 +16,7 @@ use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 
+use crate::backup;
 use crate::error::{AppError, ErrorBody};
 use crate::importer;
 use crate::receipt;
@@ -57,11 +58,16 @@ struct TrendPayload {
 /// Runs one API call and returns the JSON reply. Never panics on bad
 /// input; every failure becomes an `"ok": false` reply.
 pub fn dispatch(connection: &mut SqliteConnection, method: &str, payload: &str) -> String {
-    let reply = match handle(connection, method, payload) {
+    envelope(handle(connection, method, payload))
+}
+
+/// Wraps a result in the reply every call returns.
+pub fn envelope(result: Result<Value, AppError>) -> String {
+    match result {
         Ok(data) => json!({ "ok": true, "data": data }),
         Err(error) => json!({ "ok": false, "error": ErrorBody::from(&error) }),
-    };
-    reply.to_string()
+    }
+    .to_string()
 }
 
 fn handle(
@@ -90,6 +96,13 @@ fn handle(
             connection,
             &parse(payload)?,
         )),
+        "createBackup" => to_json(backup::create(connection, &parse(payload)?)),
+        "inspectBackup" => to_json(backup::inspect(&parse(payload)?)),
+        // Replacing the database needs the live connection itself, so `ffi::call` handles this one.
+        "restoreBackup" => Err(AppError::InvalidRequest(
+            "restoreBackup can only run on the app's own database".to_string(),
+        )),
+        "markBackupDone" => to_json(service::settings::mark_backup_done(connection)),
         "getDataOverview" => to_json(service::data::get_data_overview(connection)),
         "exportDataCsv" => {
             let TodayPayload { today } = parse(payload)?;
@@ -146,7 +159,7 @@ fn handle(
 
 /// Parses the payload. An empty string counts as `{}` so list calls can
 /// be made without a payload.
-fn parse<T: DeserializeOwned>(payload: &str) -> Result<T, AppError> {
+pub(crate) fn parse<T: DeserializeOwned>(payload: &str) -> Result<T, AppError> {
     let payload = if payload.trim().is_empty() {
         "{}"
     } else {
@@ -156,7 +169,7 @@ fn parse<T: DeserializeOwned>(payload: &str) -> Result<T, AppError> {
         .map_err(|error| AppError::InvalidRequest(format!("Invalid payload: {error}")))
 }
 
-fn to_json<T: serde::Serialize>(result: Result<T, AppError>) -> Result<Value, AppError> {
+pub(crate) fn to_json<T: serde::Serialize>(result: Result<T, AppError>) -> Result<Value, AppError> {
     let data = result?;
     serde_json::to_value(data)
         .map_err(|error| AppError::InvalidRequest(format!("Could not encode reply: {error}")))
@@ -235,6 +248,42 @@ mod tests {
             r#"{"content":"x","today":"2026-10-07","default_currency":"EUR","colunm":1}"#,
         );
         assert_eq!(typo["error"]["kind"], "invalid_request");
+    }
+
+    #[test]
+    fn backup_methods_create_and_inspect_through_json_but_restore_needs_the_live_database() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("a.vise").to_string_lossy().into_owned();
+        let mut connection = establish_connection_test().unwrap();
+        call(&mut connection, "addCategory", r##"{"name":"Groceries"}"##);
+
+        let made = call(
+            &mut connection,
+            "createBackup",
+            &serde_json::json!({ "path": path }).to_string(),
+        );
+        assert_eq!(made["ok"], true, "{made}");
+        assert_eq!(made["data"]["summary"]["categories"], 1);
+        let seen = call(
+            &mut connection,
+            "inspectBackup",
+            &serde_json::json!({ "path": path }).to_string(),
+        );
+        assert_eq!(seen["data"]["needs_passphrase"], false);
+        assert_eq!(seen["data"]["summary"]["categories"], 1);
+
+        let refused = call(
+            &mut connection,
+            "restoreBackup",
+            &serde_json::json!({ "path": path }).to_string(),
+        );
+        assert_eq!(refused["error"]["kind"], "invalid_request");
+        let short = call(
+            &mut connection,
+            "createBackup",
+            &serde_json::json!({ "path": path, "passphrase": "abc" }).to_string(),
+        );
+        assert_eq!(short["error"]["field"], "passphrase");
     }
 
     #[test]

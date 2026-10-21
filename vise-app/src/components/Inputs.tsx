@@ -105,9 +105,11 @@ interface TextFieldProps {
   placeholder?: string;
   helperText?: string;
   error?: string;
+  /** Hides what is typed (passphrases). Also turns off suggestions and auto-capitalising. */
+  secureTextEntry?: boolean;
 }
 
-export function TextField({ label, value, onChangeText, placeholder, helperText, error }: TextFieldProps) {
+export function TextField({ label, value, onChangeText, placeholder, helperText, error, secureTextEntry }: TextFieldProps) {
   const [focused, setFocused] = useState(false);
   return (
     <FieldFrame label={label} helperText={helperText} error={error} focused={focused} fieldStyle={styles.textField}>
@@ -123,6 +125,9 @@ export function TextField({ label, value, onChangeText, placeholder, helperText,
             placeholderTextColor={color.content.secondary}
             selectionColor={color.brand.primary}
             cursorColor={color.brand.primary}
+            secureTextEntry={secureTextEntry}
+            autoCapitalize={secureTextEntry ? 'none' : undefined}
+            autoCorrect={secureTextEntry ? false : undefined}
             style={[type.bodyLarge, styles.input]}
           />
         </View>

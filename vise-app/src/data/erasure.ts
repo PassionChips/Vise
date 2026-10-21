@@ -12,5 +12,5 @@ export function describeErasure(overview: DataOverview): string {
     count(overview.categories, 'category', 'categories'),
     count(overview.income_sources, 'income source', 'income sources'),
   ];
-  return `This permanently erases ${parts.join(', ')}, your name, avatar and settings from this device. It can’t be undone.`;
+  return `This permanently erases ${parts.join(', ')}, your name, avatar and settings from this device. It can’t be undone. Backup files you saved elsewhere are not deleted.`;
 }

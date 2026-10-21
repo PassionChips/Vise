@@ -241,6 +241,8 @@ pub fn delete_all_data(
                 app_settings::warning_threshold_percent.eq(80),
                 app_settings::onboarding_completed_at.eq(None::<i64>),
                 app_settings::avatar.eq(None::<String>),
+                app_settings::backup_folder.eq(None::<String>),
+                app_settings::last_backup_at.eq(None::<i64>),
             ))
             .execute(connection)?;
 
@@ -391,6 +393,7 @@ mod tests {
     fn delete_all_erases_everything_and_restarts_onboarding() {
         let mut connection = onboarded();
         let mut theme = UpdateSettingsInput {
+            backup_folder: None,
             currency: None,
             display_name: None,
             monthly_income: None,

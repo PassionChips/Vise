@@ -13,8 +13,9 @@ tags: [onboarding]
 - assertVisible: "Set a monthly limit for .*"
 - tapOn: "Skip"
 - assertVisible: "Add your first transaction"
-# Skipping the last step saves with no transaction
+# Skipping the last data step saves with no transaction, then the backup step appears
 - tapOn: "Skip"
+- runFlow: ../subflows/skip-backup.yaml
 - assertVisible: "You’re all set.*"
 - assertVisible: "None yet"
 - assertVisible: "Not set"

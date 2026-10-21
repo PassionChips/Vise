@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import {
+  ArchiveRestore,
   Calendar,
   Download,
   Euro,
@@ -27,6 +28,7 @@ import { SettingsGroup, SettingsRow, SettingsSectionHeader } from '../../src/com
 import { describeErasure } from '../../src/data/erasure';
 import { downloadDataCsv, removeExportFiles } from '../../src/data/exportData';
 import { AVATARS } from '../../src/data/avatars';
+import { describeLastBackup } from '../../src/data/backupNames';
 import { useCoreQuery } from '../../src/data/store';
 import { currencyByCode, type CurrencyCode } from '../../src/features/onboarding/data';
 import { formatMoney } from '../../src/format';
@@ -82,12 +84,12 @@ export default function SettingsScreen() {
               </SettingsGroup>
 
               <SettingsSectionHeader title="Data" />
-              <DataSection />
+              <DataSection lastBackupAt={s.last_backup_at} />
 
               <SettingsSectionHeader title="About" />
               <SettingsGroup>
                 <SettingsRow type="value" icon={Info} label="Version" value={version} />
-                <SettingsRow type="value" icon={User} label="Data" value="On this device only" />
+                <SettingsRow type="value" icon={User} label="Data" value="On this device (and your backups)" />
               </SettingsGroup>
             </>
           );
@@ -233,7 +235,7 @@ function AppearancePicker() {
 
 type Status = { kind: 'error' | 'info'; title: string; description: string } | null;
 
-function DataSection() {
+function DataSection({ lastBackupAt }: { lastBackupAt: number | null }) {
   const overview = useCoreQuery(getDataOverview);
   const [exporting, setExporting] = useState(false);
   const [status, setStatus] = useState<Status>(null);
@@ -296,7 +298,7 @@ function DataSection() {
 
   const message = overview.data
     ? describeErasure(overview.data)
-    : 'This permanently erases all your transactions, budgets, categories, income sources, name, avatar and settings from this device. It can’t be undone.';
+    : 'This permanently erases all your transactions, budgets, categories, income sources, name, avatar and settings from this device. It can’t be undone. Backup files you saved elsewhere are not deleted.';
 
   return (
     <>
@@ -308,6 +310,7 @@ function DataSection() {
           value="CSV"
           onPress={exporting ? undefined : exportFromRow}
         />
+        <SettingsRow type="navigation" icon={ArchiveRestore} label="Backup & restore" value={describeLastBackup(lastBackupAt, new Date())} onPress={() => router.push('/backup')} />
         <SettingsRow type="navigation" icon={Upload} label="Import data (CSV)" value="CSV" onPress={() => router.push('/import')} />
         <SettingsRow type="destructive" icon={Trash2} label="Delete all my data" onPress={openConfirm} />
       </SettingsGroup>

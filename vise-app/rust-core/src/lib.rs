@@ -10,12 +10,14 @@
 //! - `parser`       CSV import (fixed columns, used by the developer binary)
 //! - `importer`     import of any CSV: detects columns, dates and amounts, previews, then saves
 //! - `receipt`      reads a photographed receipt (OCR text) into a proposed expense
+//! - `backup`       whole-database backup and restore (one file, optional passphrase)
 //! - `ffi`          native entry points used by the Expo module (Android JNI, C ABI)
 //!
 //! Shared helpers: `error` (AppError), `money` (amount parsing),
 //! `month` (YYYY-MM handling).
 
 pub mod api;
+pub mod backup;
 pub mod calculations;
 pub mod db;
 pub mod error;

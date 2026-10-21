@@ -3,6 +3,9 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type {
+  BackupInfo,
+  BackupInspection,
+  BackupSummary,
   CategoryStatus,
   CsvExport,
   DataOverview,
@@ -33,6 +36,8 @@ const settings: Settings = {
   onboarding_completed: false,
   theme: 'system',
   avatar: null,
+  backup_folder: null,
+  last_backup_at: null,
 };
 
 const overview: DataOverview = {
@@ -183,6 +188,30 @@ const receiptScan: ReceiptScan = {
   warnings: [],
 };
 
+const backupSummary: BackupSummary = {
+  transactions: 0,
+  categories: 0,
+  income_sources: 0,
+  budgets: 0,
+  first_transaction_date: null,
+  last_transaction_date: null,
+};
+
+const backupInfo: BackupInfo = {
+  path: '/cache/a.vise',
+  bytes: 1,
+  encrypted: false,
+  created_at: '2026-10-08T12:00:00Z',
+  summary: backupSummary,
+};
+
+const backupInspection: BackupInspection = {
+  encrypted: false,
+  needs_passphrase: false,
+  created_at: '2026-10-08T12:00:00Z',
+  summary: backupSummary,
+};
+
 const contract = JSON.parse(
   readFileSync(resolve(__dirname, '../../rust-core/contracts/api-shapes.json'), 'utf8'),
 ) as Record<string, string[]>;
@@ -205,5 +234,8 @@ describe('TypeScript types match the rust-core JSON contract', () => {
   it('ImportSuggestion', () => expect(sorted(importSuggestion)).toEqual(contract.ImportSuggestion));
   it('ReceiptScan', () => expect(sorted(receiptScan)).toEqual(contract.ReceiptScan));
   it('TotalCandidate', () => expect(sorted(totalCandidate)).toEqual(contract.TotalCandidate));
+  it('BackupInfo', () => expect(sorted(backupInfo)).toEqual(contract.BackupInfo));
+  it('BackupInspection', () => expect(sorted(backupInspection)).toEqual(contract.BackupInspection));
+  it('BackupSummary', () => expect(sorted(backupSummary)).toEqual(contract.BackupSummary));
   it('ImportSummary', () => expect(sorted(importSummary)).toEqual(contract.ImportSummary));
 });

@@ -4,7 +4,7 @@
 import { ArrowDownLeft, CircleCheck, Euro, Lock, ReceiptText } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 
-import { PrimaryButton } from '../../components/Buttons';
+import { PrimaryButton, TertiaryButton } from '../../components/Buttons';
 import { SegmentedControl } from '../../components/Controls';
 import { CategoryBudgetCard } from '../../components/FinanceCards';
 import { AmountInput, DateField, SelectField, TextField } from '../../components/Inputs';
@@ -28,9 +28,16 @@ type FieldErrors = Partial<Record<string, string>>;
 
 // ----- 1.1 Welcome -----
 
-export function WelcomeScreen({ onStart }: { onStart: () => void }) {
+export function WelcomeScreen({ onStart, onRestore }: { onStart: () => void; onRestore: () => void }) {
   return (
-    <OnboardingScreen actions={<PrimaryButton label="Get started" onPress={onStart} />}>
+    <OnboardingScreen
+      actions={
+        <>
+          <PrimaryButton label="Get started" onPress={onStart} />
+          <TertiaryButton label="I already use VISE · Restore my data" size="large" onPress={onRestore} />
+        </>
+      }
+    >
       <View style={styles.flex} />
       <View style={styles.mark} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <Text style={[type.headingLarge, styles.markGlyph]}>V</Text>
@@ -44,7 +51,7 @@ export function WelcomeScreen({ onStart }: { onStart: () => void }) {
       <View style={styles.privacy}>
         <Lock size={16} color={color.content.secondary} />
         <Text style={[type.bodySmall, styles.secondaryText, styles.flex]}>
-          No bank login needed. Your data stays on this device.
+          No bank login needed. Your data stays on this device, and goes elsewhere only if you choose to back it up.
         </Text>
       </View>
     </OnboardingScreen>

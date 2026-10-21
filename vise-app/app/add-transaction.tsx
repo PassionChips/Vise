@@ -8,9 +8,12 @@ import { Alert } from '../src/components/Alert';
 import { IconButton, PrimaryButton, SecondaryButton } from '../src/components/Buttons';
 import { SegmentedControl } from '../src/components/Controls';
 import { AmountInput, DateField, SelectField, TextField } from '../src/components/Inputs';
+import { DatePickerSheet } from '../src/components/DatePickerSheet';
 import { BottomSheet, SheetAction } from '../src/components/Overlays';
 import { QueryState } from '../src/components/QueryState';
+import { dayLabel, isRealDate } from '../src/data/calendar';
 import { activeErrors, clearError, fixSummary } from '../src/data/formErrors';
+import { setSavedTransactionDate } from '../src/data/savedTransaction';
 import { useFinance, type FinanceData } from '../src/data/finance';
 import { scanReceipt, type ReceiptSource } from '../src/data/receiptScan';
 import { ScanNotes } from '../src/features/receipt/ScanNotes';
@@ -37,15 +40,15 @@ const FIELD: Record<string, keyof Errors> = {
   income_source_id: 'category',
 };
 
+/** "Today, Thu 8 Oct" or "Fri 12 Mar 2021" (the year is shown when it is not this year). */
 function displayDate(iso: string) {
-  const [y, m, d] = iso.split('-');
-  return `${iso === todayIso() ? 'Today, ' : ''}${d}/${m}/${y}`;
+  return `${iso === todayIso() ? 'Today, ' : ''}${dayLabel(iso)}`;
 }
 
 /** Add (no params) or edit (?id=<transaction id>) a transaction. */
 export default function AddTransactionScreen() {
   useTheme();
-  const params = useLocalSearchParams<{ type?: string; id?: string; scan?: string }>();
+  const params = useLocalSearchParams<{ type?: string; id?: string; scan?: string; date?: string }>();
   const editingId = params.id ? Number(params.id) : null;
   const finance = useFinance(currentMonth());
   // An edit can target any month, so look the transaction up by id across the stored months.
@@ -64,6 +67,7 @@ export default function AddTransactionScreen() {
                 data={data}
                 existing={existing}
                 initialIncome={params.type === 'income'}
+                initialDate={isRealDate(params.date) ? params.date : undefined}
                 autoScan={params.scan === 'camera' || params.scan === 'library' ? params.scan : undefined}
               />
             )}
@@ -99,11 +103,14 @@ function Form({
   data,
   existing,
   initialIncome,
+  initialDate,
   autoScan,
 }: {
   data: FinanceData;
   existing: Transaction | null;
   initialIncome: boolean;
+  /** Opened from a day in the calendar: that day, not today, is the transaction's date. */
+  initialDate?: string;
   autoScan?: ReceiptSource;
 }) {
   const { settings, categories, sources } = data;
@@ -124,7 +131,8 @@ function Form({
   const [errors, setErrors] = useState<Errors>({});
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [date, setDate] = useState(existing ? isoFromUnix(existing.occurred_at) : todayIso());
+  const [date, setDate] = useState(existing ? isoFromUnix(existing.occurred_at) : (initialDate ?? todayIso()));
+  const [datePicker, setDatePicker] = useState(false);
   const [scan, setScan] = useState<ReceiptScan | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -203,6 +211,7 @@ function Form({
       };
       if (existing) await updateTransaction({ id: existing.id, ...input });
       else await addTransaction(input);
+      setSavedTransactionDate(date);
       router.back();
     } catch (error) {
       // Never close the screen on failure: keep what was typed and say what went wrong.
@@ -281,7 +290,7 @@ function Form({
             placeholder={expense ? 'Choose a category' : 'Choose a source'}
             error={errors.category}
           />
-          <DateField label="Date" displayValue={displayDate(date)} error={errors.date} />
+          <DateField label="Date" displayValue={displayDate(date)} error={errors.date} onPress={() => setDatePicker(true)} />
         </ScrollView>
 
         <View style={styles.footer}>
@@ -292,6 +301,17 @@ function Form({
           />
         </View>
       </KeyboardAvoidingView>
+
+      <DatePickerSheet
+        visible={datePicker}
+        value={date}
+        today={todayIso()}
+        onSelect={(picked) => {
+          setDate(picked);
+          setErrors((e) => clearError(e, 'date'));
+        }}
+        onClose={() => setDatePicker(false)}
+      />
 
       <BottomSheet visible={scanSheet} title="Scan receipt" onClose={() => setScanSheet(false)}>
         <SheetAction icon={Camera} title="Take a photo" subtitle="Lay the receipt flat in good light" onPress={() => runScan('camera')} />
